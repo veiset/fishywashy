@@ -1,8 +1,10 @@
 local addonName, ns = ...
-local Storage, Sound, UI = ns.Storage, ns.Sound, ns.UI
+local Storage, Sound, Catches, Debug, UI = ns.Storage, ns.Sound, ns.Catches, ns.Debug, ns.UI
 
-local GetSpellName = (C_Spell and C_Spell.GetSpellName) or GetSpellInfo
-local FISHING = GetSpellName(7620)
+-- Skip the sound of the cast itself before boosting
+local BOOST_DELAY = 0.5
+
+local boostTimer
 
 local events = CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
@@ -17,10 +19,18 @@ events:SetScript("OnEvent", function(self, event, arg1, _, spellID)
         -- Settings left boosted by a logout or crash mid-cast
         Sound.Restore()
         UI.Init()
+        Debug.Init()
         print("hello")
-    elseif GetSpellName(spellID) == FISHING then
+    elseif Catches.IsFishingSpell(spellID) then
+        if boostTimer then
+            boostTimer:Cancel()
+            boostTimer = nil
+        end
         if event == "UNIT_SPELLCAST_CHANNEL_START" then
-            if Storage.GetSetting("enabled") then Sound.Boost() end
+            boostTimer = C_Timer.NewTimer(BOOST_DELAY, function()
+                boostTimer = nil
+                if Storage.GetSetting("enabled") then Sound.Boost() end
+            end)
         else
             Sound.Restore()
         end
@@ -28,4 +38,10 @@ events:SetScript("OnEvent", function(self, event, arg1, _, spellID)
 end)
 
 SLASH_FISHYWASHY1 = "/fishy"
-SlashCmdList.FISHYWASHY = UI.Toggle
+SlashCmdList.FISHYWASHY = function(message)
+    if message:lower():match("^%s*debug%s*$") then
+        Debug.Toggle()
+    else
+        UI.Toggle()
+    end
+end

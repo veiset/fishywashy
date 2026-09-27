@@ -9,6 +9,10 @@ local SCHEMA_VERSION = 1
 local DEFAULTS = {
     enabled = false,
     volume = 1,
+    showStats = true,
+    statsIncludeMissed = false,
+    showAdvancedStats = true,
+    debug = false,
 }
 
 local db
@@ -19,6 +23,9 @@ function Storage.Init()
     end
     db = FishyWashyDB
     db.settings = db.settings or {}
+    db.catches = db.catches or {}
+    db.casts = db.casts or {}
+    db.statsStart = db.statsStart or (db.catches[1] and db.catches[1].time) or time()
 end
 
 function Storage.GetSetting(key)
@@ -40,4 +47,34 @@ end
 
 function Storage.SetSoundBackup(backup)
     db.soundBackup = backup
+end
+
+-- Every fishing catch, oldest first: { itemID, link, icon, quantity, time, zone }
+function Storage.AddCatch(catch)
+    table.insert(db.catches, catch)
+end
+
+function Storage.GetCatches()
+    return db.catches
+end
+
+-- Every fishing cast, oldest first: { time, ended, caught, seconds }; seconds is set for caught casts
+function Storage.AddCast(cast)
+    table.insert(db.casts, cast)
+end
+
+function Storage.GetCasts()
+    return db.casts
+end
+
+-- Clears the catches and casts that the stats are built from
+function Storage.ClearCatches()
+    db.catches = {}
+    db.casts = {}
+    db.statsStart = time()
+end
+
+-- When the stats were last reset
+function Storage.GetStatsStart()
+    return db.statsStart
 end
