@@ -49,7 +49,7 @@ local function AddItemToGlobal(catch)
 end
 
 local function AddAreaItemToGlobal(catch)
-    -- The subzone is empty away from named areas, and missing on older catches
+    -- The subzone is empty away from named areas
     if not catch.zone or not catch.subzone or catch.subzone == "" then return end
     local zone = db.globalAreaItems[catch.zone] or {}
     db.globalAreaItems[catch.zone] = zone
@@ -65,7 +65,7 @@ local function AddZoneToGlobal(catch)
         db.globalZones[catch.zone] = zone
     end
     zone.count = zone.count + catch.quantity
-    -- The subzone is empty away from named areas, and missing on older catches
+    -- The subzone is empty away from named areas
     if catch.subzone and catch.subzone ~= "" then
         zone.subzones[catch.subzone] = (zone.subzones[catch.subzone] or 0) + catch.quantity
     end
@@ -85,47 +85,23 @@ local function AddCastCountsToGlobal(cast)
     end
 end
 
--- Creates an all-time total missing from older saved data, starting it from this session's history
-local function InitGlobal(key, initial, history, add)
-    if db[key] then return end
-    db[key] = initial
-    for _, entry in ipairs(history) do
-        add(entry)
-    end
-end
-
 function Storage.Init()
-    if type(FishyWashyDB) ~= "table" or FishyWashyDB.version == nil then
-        FishyWashyDB = { version = SCHEMA_VERSION }
-    end
+    FishyWashyDB = FishyWashyDB or { version = SCHEMA_VERSION }
     db = FishyWashyDB
     db.settings = db.settings or {}
     db.catches = db.catches or {}
     db.casts = db.casts or {}
-    db.statsStart = db.statsStart or (db.catches[1] and db.catches[1].time) or time()
+    db.statsStart = db.statsStart or time()
 
-    InitGlobal("globalItems", {}, db.catches, AddItemToGlobal)
-    InitGlobal("globalZones", {}, db.catches, AddZoneToGlobal)
-    InitGlobal("globalAreaItems", {}, db.catches, AddAreaItemToGlobal)
-    -- Older saved data kept only a count per zone
-    for name, zone in pairs(db.globalZones) do
-        if type(zone) == "number" then
-            db.globalZones[name] = { count = zone, subzones = {} }
-        end
-    end
-    InitGlobal("globalHours", {}, db.casts, AddHourToGlobal)
-    if not db.globalCaughtCasts then
-        db.globalCaughtCasts, db.globalUnsuccessful, db.globalCatchSeconds = 0, 0, 0
-        for _, cast in ipairs(db.casts) do
-            AddCastCountsToGlobal(cast)
-        end
-    end
-    db.globalSessions = db.globalSessions or 1
+    db.globalItems = db.globalItems or {}
+    db.globalZones = db.globalZones or {}
+    db.globalAreaItems = db.globalAreaItems or {}
     db.globalBaitUsed = db.globalBaitUsed or {}
-    -- Left over from removed features
-    db.skillDebug = nil
-    db.globalZoneItems = nil
-    db.globalBait = nil
+    db.globalHours = db.globalHours or {}
+    db.globalCaughtCasts = db.globalCaughtCasts or 0
+    db.globalUnsuccessful = db.globalUnsuccessful or 0
+    db.globalCatchSeconds = db.globalCatchSeconds or 0
+    db.globalSessions = db.globalSessions or 1
 end
 
 function Storage.GetSetting(key)

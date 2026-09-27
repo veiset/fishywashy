@@ -52,20 +52,14 @@ function Stats.GetSummary(includeMissed)
     return total, entries, caught
 end
 
--- All-time count and share of each item, most caught first, and the all-time total. With
--- includeMissed, unsuccessful casts are counted as an entry { missed = true } too.
-function Stats.GetGlobalSummary(includeMissed)
+-- All-time count and share of each item, most caught first, and the all-time total
+function Stats.GetGlobalSummary()
     local total, entries = 0, {}
     for itemID, item in pairs(Storage.GetGlobalItems()) do
         table.insert(entries, {
             itemID = itemID, link = item.link, icon = item.icon, count = item.count, lastSeen = item.lastSeen,
         })
         total = total + item.count
-    end
-    local _, missed = Storage.GetGlobalCasts()
-    if includeMissed and missed > 0 then
-        table.insert(entries, { missed = true, count = missed })
-        total = total + missed
     end
     AddShares(entries, total)
     return total, entries
@@ -84,7 +78,7 @@ function Stats.GetBaitSummary()
     return total, entries
 end
 
-local GetItemInfoInstant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+local GetItemInfoInstant = ns.Utils.GetItemInfoInstant
 local CONSUMABLE_CLASS = 0
 local TRADE_GOODS_CLASS = 7
 

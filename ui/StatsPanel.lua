@@ -1,16 +1,9 @@
 local _, ns = ...
-local Panel, Storage, Catches, Stats = ns.Panel, ns.Storage, ns.Catches, ns.Stats
+local Utils, Panel, Storage, Catches, Stats = ns.Utils, ns.Panel, ns.Storage, ns.Catches, ns.Stats
 
 -- Totals, rates and the share of each item caught.
 local StatsPanel = {}
 ns.StatsPanel = StatsPanel
-
-local function FormatDuration(seconds)
-    if seconds < 3600 then
-        return ("%dm %02ds"):format(seconds / 60, seconds % 60)
-    end
-    return ("%dh %02dm"):format(seconds / 3600, seconds % 3600 / 60)
-end
 
 function StatsPanel.Create(parent)
     local panel = Panel.Create(parent, "Stats", "No fish caught yet", 2)
@@ -19,7 +12,7 @@ function StatsPanel.Create(parent)
     local function UpdateRates()
         panel:SetSubheading(1,
             ("Fish/hour: %.0f"):format(Stats.GetPerHour(caught)),
-            "Session: " .. FormatDuration(Stats.GetSessionLength()))
+            "Session: " .. Utils.FormatDuration(Stats.GetSessionLength()))
     end
 
     local function UpdateCasts()
@@ -34,7 +27,7 @@ function StatsPanel.Create(parent)
         panel:SetSubheadingsShown(Storage.GetSetting("showAdvancedStats"))
         panel:SetEntries(entries, function(entry)
             local text = entry.missed and Panel.FormatMiss() or Panel.FormatItem(entry.icon, entry.link)
-            return text, ("%d (%.0f%%)"):format(entry.count, entry.percent)
+            return text, Utils.FormatCount(entry.count, entry.percent)
         end)
         UpdateRates()
         UpdateCasts()

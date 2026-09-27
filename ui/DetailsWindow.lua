@@ -1,5 +1,5 @@
 local _, ns = ...
-local Panel, Storage, Catches, Stats = ns.Panel, ns.Storage, ns.Catches, ns.Stats
+local Utils, Panel, Storage, Catches, Stats = ns.Utils, ns.Panel, ns.Storage, ns.Catches, ns.Stats
 
 -- A separate window with every all-time catch, grouped into fish, treasure and junk, and
 -- every zone with all its areas.
@@ -24,6 +24,8 @@ local CATEGORIES = {
 
 local window
 local summary, bait, zones
+-- One section per category, by its key
+local sections = {}
 local shownListeners = {}
 
 -- callback(shown) runs whenever the window opens or closes
@@ -36,13 +38,10 @@ local function NotifyShownChanged(shown)
         callback(shown)
     end
 end
-local sections = {}
+
 -- The question-mark icon, for items the game hasn't loaded yet
 local UNKNOWN_ICON = 134400
-
-local function FormatCount(count, percent)
-    return ("%d (%.0f%%)"):format(count, percent)
-end
+local FormatCount = Utils.FormatCount
 
 local function ShowItemTooltip(entry)
     GameTooltip:SetHyperlink(entry.link)
@@ -82,7 +81,7 @@ local function Layout(content)
 end
 
 local function Refresh()
-    local total, entries = Stats.GetGlobalSummary(false)
+    local total, entries = Stats.GetGlobalSummary()
 
     -- Split the items into the categories, keeping their share of all items
     local byCategory, counts = {}, {}
@@ -114,7 +113,7 @@ local function Refresh()
     local baitTotal, baits = Stats.GetBaitSummary()
     bait:SetHeadingValue(baitTotal .. " used")
     bait:SetEntries(baits, function(entry)
-        local lastUsed = entry.lastSeen and Panel.FormatTimeSince(entry.lastSeen) or ""
+        local lastUsed = entry.lastSeen and Utils.FormatTimeSince(entry.lastSeen) or ""
         local name = Panel.FormatItem(entry.icon or UNKNOWN_ICON, entry.link or ("Item " .. entry.itemID))
         return name, lastUsed, FormatCount(entry.count, entry.percent)
     end, function(entry)
@@ -125,7 +124,7 @@ local function Refresh()
         local section = sections[category.key]
         section:SetHeadingValue(counts[category.key] .. " caught")
         section:SetEntries(byCategory[category.key], function(entry)
-            local lastSeen = entry.lastSeen and Panel.FormatTimeSince(entry.lastSeen) or ""
+            local lastSeen = entry.lastSeen and Utils.FormatTimeSince(entry.lastSeen) or ""
             return Panel.FormatItem(entry.icon, entry.link), lastSeen, FormatCount(entry.count, entry.percent)
         end, ShowItemTooltip)
     end
@@ -151,7 +150,7 @@ local function Refresh()
         else
             for _, subzone in ipairs(zone.subzones) do
                 table.insert(zoneRows, {
-                    text = "    |cff9d9d9d" .. subzone.name .. "|r",
+                    text = "    " .. Utils.Color(subzone.name, Utils.GREY),
                     value = FormatCount(subzone.count, subzone.percent),
                     heading = true,
                 })
@@ -173,7 +172,7 @@ local SHARED_TOP_ITEMS = 3
 -- "FishyWashy: 312 caught, 45% catch rate (312/690), fishing 311. Top: Raw Brilliant
 -- Smallfish 140, ...", from the all-time stats
 local function BuildShareMessage()
-    local total, entries = Stats.GetGlobalSummary(false)
+    local total, entries = Stats.GetGlobalSummary()
     local parts = { ("FishyWashy: %d caught"):format(total) }
     local rate, caught, casts = Stats.GetGlobalCastSummary()
     if rate then
@@ -186,7 +185,7 @@ local function BuildShareMessage()
     local top = {}
     for i = 1, math.min(SHARED_TOP_ITEMS, #entries) do
         -- Plain names: links are long and would use up the message
-        local name = entries[i].link and entries[i].link:match("%[(.-)%]") or "?"
+        local name = Utils.GetLinkName(entries[i].link) or "?"
         table.insert(top, ("%s %d"):format(name, entries[i].count))
     end
     if #top > 0 then
@@ -206,14 +205,7 @@ local function Create()
     window:SetSize(WIDTH, HEIGHT)
     window:SetPoint("CENTER")
     window:SetFrameStrata("DIALOG")
-    window:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        edgeSize = 12,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 },
-    })
-    window:SetBackdropColor(0, 0, 0, 0.85)
-    window:SetBackdropBorderColor(1, 1, 1, 0.6)
+    Panel.ApplyWindowBackdrop(window, 0.85)
     window:SetMovable(true)
     window:SetClampedToScreen(true)
     window:EnableMouse(true)

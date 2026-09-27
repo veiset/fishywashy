@@ -6,13 +6,14 @@
 ## IconTexture: 4777763
 ## SavedVariables: FishyWashyDB
 
+core\Utils.lua
 Config.lua
-Storage.lua
-Bait.lua
-Catches.lua
-Sound.lua
-EasyCast.lua
-Stats.lua
+core\Storage.lua
+core\Bait.lua
+core\Catches.lua
+core\Sound.lua
+core\EasyCast.lua
+core\Stats.lua
 ui\Panel.lua
 ui\ConfigPanel.lua
 ui\ActivityGraph.lua

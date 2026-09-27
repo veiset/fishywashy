@@ -1,5 +1,5 @@
 local _, ns = ...
-local Panel, Catches, Stats = ns.Panel, ns.Catches, ns.Stats
+local Utils, Panel, Catches, Stats = ns.Utils, ns.Panel, ns.Catches, ns.Stats
 
 -- All-time items caught per zone, with the zone's most fished area.
 local ZonesPanel = {}
@@ -36,7 +36,7 @@ function ZonesPanel.Create(parent)
     function panel.Refresh()
         -- The area goes in the value column and the count in the fixed right-most column
         panel:SetEntries(Stats.GetZoneSummary(), function(zone)
-            return zone.zone, FormatAreas(zone) or "", ("%d (%.0f%%)"):format(zone.count, zone.percent)
+            return zone.zone, FormatAreas(zone) or "", Utils.FormatCount(zone.count, zone.percent)
         end, ShowAreasTooltip)
     end
 

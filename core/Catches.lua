@@ -5,7 +5,7 @@ local Config, Storage = ns.Config, ns.Storage
 local Catches = {}
 ns.Catches = Catches
 
-local GetSpellName = (C_Spell and C_Spell.GetSpellName) or GetSpellInfo
+local GetSpellName = ns.Utils.GetSpellName
 local FISHING = GetSpellName(7620)
 -- The Fishing spell's name, in the client's language
 Catches.FISHING = FISHING

@@ -1,28 +1,23 @@
 local _, ns = ...
-local Storage = ns.Storage
+local Utils, Storage = ns.Utils, ns.Storage
 
 -- Bait (fishing lures) is applied as a temporary enchant on the fishing pole.
 local Bait = {}
 ns.Bait = Bait
 
-local MAIN_HAND_SLOT = 16
+-- The equipment slot the fishing pole goes in
+Bait.MAIN_HAND_SLOT = 16
+local MAIN_HAND_SLOT = Bait.MAIN_HAND_SLOT
 local WEAPON_CLASS = 2
 local FISHING_POLE_SUBCLASS = 20
 
-local GetItemInfoInstant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
-local GetItemCount = (C_Item and C_Item.GetItemCount) or GetItemCount
-
-function Bait.GetCount(itemID)
-    return GetItemCount(itemID)
-end
+local GetItemInfo, GetItemInfoInstant = Utils.GetItemInfo, Utils.GetItemInfoInstant
+local GetItemCount, GetItemIcon = Utils.GetItemCount, Utils.GetItemIcon
 
 -- Macro that uses the bait and applies it to the main hand (the fishing pole)
 function Bait.GetApplyMacro(itemID)
     return "/use item:" .. itemID .. "\n/use " .. MAIN_HAND_SLOT
 end
-
-local GetItemInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
-local GetItemIcon = (C_Item and C_Item.GetItemIconByID) or GetItemIcon
 
 -- How long to wait, after a bait button is clicked, for the bait to leave the bags
 local USE_TIMEOUT = 10

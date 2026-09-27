@@ -1,5 +1,5 @@
 local _, ns = ...
-local Config, Storage, Bait, Catches = ns.Config, ns.Storage, ns.Bait, ns.Catches
+local Utils, Config, Storage, Bait, Catches = ns.Utils, ns.Config, ns.Storage, ns.Bait, ns.Catches
 local Panel, ConfigPanel, StatsPanel, HistoryPanel = ns.Panel, ns.ConfigPanel, ns.StatsPanel, ns.HistoryPanel
 local ZonesPanel, DetailsWindow = ns.ZonesPanel, ns.DetailsWindow
 
@@ -19,7 +19,6 @@ local function ApplyVisibility()
 end
 
 local WIDTH = 286
-local MAIN_HAND_SLOT = 16
 -- The bait row, then a row of three buttons
 local BAIT_TOP = -33
 local ACTIONS_ROW_TOP = -67
@@ -39,14 +38,7 @@ local function CreateMainFrame()
     local f = CreateFrame("Frame", "FishyWashyFrame", UIParent, "BackdropTemplate")
     f:SetWidth(WIDTH)
     f:SetPoint("CENTER")
-    f:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        edgeSize = 12,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 },
-    })
-    f:SetBackdropColor(0, 0, 0, 0.5)
-    f:SetBackdropBorderColor(1, 1, 1, 0.6)
+    Panel.ApplyWindowBackdrop(f, 0.5)
     f:SetMovable(true)
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
@@ -100,13 +92,13 @@ local function CreateBaitStatus(parent)
         if timeLeft then
             -- The skill bonus comes from the bait, so show it in place of "applied" when known
             local applied = skill and skill.lure > 0 and ("+%d"):format(skill.lure) or "applied"
-            bait = ("Bait: |cff40ff40%s|r (%d:%02d)"):format(applied, timeLeft / 60, timeLeft % 60)
+            bait = ("Bait: %s (%s)"):format(Utils.Color(applied, Utils.GREEN), Utils.FormatClock(timeLeft))
         else
-            bait = "Bait: |cffff4040none|r"
+            bait = "Bait: " .. Utils.Color("none", Utils.RED)
         end
         -- "Fishing 311   Bait: +75 (9:30)", with the total skill in light blue
         if skill then
-            text:SetText(("Fishing |cff7777ff%d|r   %s"):format(skill.total, bait))
+            text:SetText(("Fishing %s   %s"):format(Utils.Color(skill.total, Utils.SKILL_BLUE), bait))
         else
             text:SetText(bait)
         end
@@ -119,7 +111,7 @@ end
 local BAIT_BUTTON_SIZE = 28
 local BAIT_BUTTON_SPACING = 4
 
-local GetItemIcon = (C_Item and C_Item.GetItemIconByID) or GetItemIcon
+local GetItemIcon = Utils.GetItemIcon
 
 -- Secure button that applies one kind of bait; only clicks on secure buttons may use items.
 local function CreateBaitButton(parent, itemID)
@@ -167,7 +159,7 @@ local function CreateBaitButtons(parent)
         local x = Panel.LEFT
         for _, itemID in ipairs(Config.BAIT_ITEMS) do
             local button = buttons[itemID]
-            local count = Bait.GetCount(itemID)
+            local count = Utils.GetItemCount(itemID)
             if count > 0 then
                 button.count:SetText(count)
                 button:SetPoint("TOPLEFT", x, BAIT_TOP)
@@ -196,13 +188,6 @@ local function CreateTinyTimer(icon)
     text:SetFont(STANDARD_TEXT_FONT, 8, "OUTLINE")
     text:SetPoint("TOP", icon, "BOTTOM", 0, -1)
     return text
-end
-
-local function FormatBuffTime(seconds)
-    if seconds < 60 then
-        return ("%ds"):format(seconds)
-    end
-    return ("%dm"):format(seconds / 60)
 end
 
 -- At the right end of the bait row: the best food from Config.FOOD_ITEMS in the bags, to eat
@@ -241,14 +226,14 @@ local function CreateFoodButton(parent)
         if foodID then
             button:SetAttribute("item", "item:" .. foodID)
             icon:SetTexture(GetItemIcon(foodID))
-            count:SetText(Bait.GetCount(foodID))
+            count:SetText(Utils.GetItemCount(foodID))
         end
     end
 
     -- The buff timer, which can update any time
     local function UpdateTimer()
         local left = Bait.GetFoodBuffTimeLeft()
-        timeLeft:SetText(left and FormatBuffTime(left) or "")
+        timeLeft:SetText(left and Utils.FormatShortTime(left) or "")
         icon:SetDesaturated(left ~= nil)
         icon:SetAlpha(left and 0.6 or 1)
     end
@@ -280,7 +265,7 @@ local function CreateFishingBuffIcon(parent, foodButton)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText(buff.name)
         if buff.timeLeft then
-            GameTooltip:AddLine(FormatBuffTime(buff.timeLeft) .. " left", 1, 1, 1)
+            GameTooltip:AddLine(Utils.FormatShortTime(buff.timeLeft) .. " left", 1, 1, 1)
         end
         GameTooltip:Show()
     end)
@@ -291,7 +276,7 @@ local function CreateFishingBuffIcon(parent, foodButton)
         frame:SetShown(buff ~= nil)
         if not buff then return end
         icon:SetTexture(buff.icon)
-        timeLeft:SetText(buff.timeLeft and FormatBuffTime(buff.timeLeft) or "")
+        timeLeft:SetText(buff.timeLeft and Utils.FormatShortTime(buff.timeLeft) or "")
         -- Next to the food button, or at the right edge when there's no food
         frame:ClearAllPoints()
         if foodButton:IsShown() then
@@ -447,7 +432,7 @@ function UI.Init()
             end)
             return
         end
-        if event == "PLAYER_EQUIPMENT_CHANGED" and slot == MAIN_HAND_SLOT then
+        if event == "PLAYER_EQUIPMENT_CHANGED" and slot == Bait.MAIN_HAND_SLOT then
             -- Only changing the main hand opens or hides the frame: equipping a fishing pole
             -- opens it, even after it was closed, and unequipping it hides it
             wanted = Bait.HasFishingPole()

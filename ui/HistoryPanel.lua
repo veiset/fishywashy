@@ -1,5 +1,5 @@
 local _, ns = ...
-local Config, Panel, Storage, Catches, ActivityGraph = ns.Config, ns.Panel, ns.Storage, ns.Catches, ns.ActivityGraph
+local Utils, Config, Panel, Storage, Catches, ActivityGraph = ns.Utils, ns.Config, ns.Panel, ns.Storage, ns.Catches, ns.ActivityGraph
 
 -- A graph of when you fish, then the most recent catches and unsuccessful casts.
 local HistoryPanel = {}
@@ -16,13 +16,13 @@ function HistoryPanel.Create(parent)
         redrawGraph()
         panel:SetEntries(Catches.GetRecent(Config.RECENT_CATCHES), function(catch)
             if catch.missed then
-                return Panel.FormatMiss(), Panel.FormatTimeSince(catch.time)
+                return Panel.FormatMiss(), Utils.FormatTimeSince(catch.time)
             end
             local text = Panel.FormatItem(catch.icon, catch.link)
             if catch.quantity > 1 then
                 text = text .. " x" .. catch.quantity
             end
-            return text, Panel.FormatTimeSince(catch.time)
+            return text, Utils.FormatTimeSince(catch.time)
         end)
     end
 

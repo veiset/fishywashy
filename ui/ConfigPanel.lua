@@ -1,5 +1,5 @@
 local _, ns = ...
-local Panel, Storage, Sound, Catches = ns.Panel, ns.Storage, ns.Sound, ns.Catches
+local Utils, Panel, Storage, Sound, Catches = ns.Utils, ns.Panel, ns.Storage, ns.Sound, ns.Catches
 
 -- The settings checkboxes, the volume slider and the reset-all button.
 local ConfigPanel = {}
@@ -19,10 +19,6 @@ StaticPopupDialogs["FISHYWASHY_RESET_ALL"] = {
     hideOnEscape = true,
     preferredIndex = 3,
 }
-
-local function Grey(text)
-    return "|cff9d9d9d" .. text .. "|r"
-end
 
 -- Right-aligned on the checkbox row starting at top, with the value at the right edge
 local function CreateVolumeSlider(parent, top)
@@ -79,9 +75,9 @@ function ConfigPanel.Create(parent, stats, onLayoutChange)
     end)
     CreateVolumeSlider(panel, -19)
     -- Takes effect from the next cast
-    Panel.CreateSettingCheckbox(panel, LEFT, -39, "Sound while alt-tabbed " .. Grey("(when fishing)"),
+    Panel.CreateSettingCheckbox(panel, LEFT, -39, "Sound while alt-tabbed " .. Utils.Color("(when fishing)", Utils.GREY),
         "soundInBackground")
-    Panel.CreateSettingCheckbox(panel, LEFT, -59, "Double right-click to cast " .. Grey("(when rod equipped)"),
+    Panel.CreateSettingCheckbox(panel, LEFT, -59, "Double right-click to cast " .. Utils.Color("(when rod equipped)", Utils.GREY),
         "rightClickCast")
 
     Panel.CreateSettingCheckbox(panel, LEFT, -79, "Include unsuccessful in stats", "statsIncludeMissed", function()

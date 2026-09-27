@@ -2,8 +2,6 @@ local _, ns = ...
 local Config, Storage, Bait, Catches = ns.Config, ns.Storage, ns.Bait, ns.Catches
 
 -- Double right-click on the world to cast Fishing while a fishing pole is equipped.
-local EasyCast = {}
-ns.EasyCast = EasyCast
 
 -- Only clicks on secure buttons may cast spells, so the second click of a double-click is
 -- briefly bound to this button

@@ -1,5 +1,5 @@
 local _, ns = ...
-local Storage = ns.Storage
+local Utils, Storage = ns.Utils, ns.Storage
 
 -- A panel in the main frame: a divider, a small heading with an optional value on the
 -- right, optional subheading lines, and rows of left-aligned item + right-aligned value.
@@ -14,6 +14,18 @@ local EXTRA_WIDTH = 60
 -- Where text starts from the left edge in the main window's panels
 Panel.LEFT = 9
 local MISSED_ICON = "Interface/Icons/Trade_Fishing"
+
+-- The dark, see-through tooltip-style background and border both windows use
+function Panel.ApplyWindowBackdrop(frame, backgroundAlpha)
+    frame:SetBackdrop({
+        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        edgeSize = 12,
+        insets = { left = 3, right = 3, top = 3, bottom = 3 },
+    })
+    frame:SetBackdropColor(0, 0, 0, backgroundAlpha)
+    frame:SetBackdropBorderColor(1, 1, 1, 0.6)
+end
 
 function Panel.CreateDivider(parent, y)
     local line = parent:CreateTexture(nil, "ARTWORK")
@@ -95,19 +107,6 @@ function Panel.CreateCloseButton(parent, onClick)
     return close
 end
 
-function Panel.FormatTimeSince(timestamp)
-    local seconds = time() - timestamp
-    if seconds < 60 then
-        return seconds .. "s ago"
-    elseif seconds < 3600 then
-        return math.floor(seconds / 60) .. "m ago"
-    elseif seconds < 86400 then
-        return math.floor(seconds / 3600) .. "h ago"
-    else
-        return math.floor(seconds / 86400) .. "d ago"
-    end
-end
-
 -- The catch rate and seconds-per-catch texts, from a Stats cast summary
 function Panel.FormatCastSummary(rate, caught, casts, average)
     return rate and ("Catch rate: %.0f%% (%d/%d)"):format(rate, caught, casts) or "Catch rate: -",
@@ -119,7 +118,7 @@ function Panel.FormatItem(icon, link)
 end
 
 function Panel.FormatMiss()
-    return Panel.FormatItem(MISSED_ICON, "|cff9d9d9dUnsuccessful|r")
+    return Panel.FormatItem(MISSED_ICON, Utils.Color("Unsuccessful", Utils.GREY))
 end
 
 local PanelMethods = {}
