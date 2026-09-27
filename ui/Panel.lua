@@ -11,7 +11,8 @@ local ROW_HEIGHT = 16
 local HEADER_HEIGHT = 21
 local GAP = 6
 local EXTRA_WIDTH = 60
-local HEADING_LEFT = 12
+-- Where text starts from the left edge in the main window's panels
+Panel.LEFT = 9
 local MISSED_ICON = "Interface/Icons/Trade_Fishing"
 
 function Panel.CreateDivider(parent, y)
@@ -125,7 +126,7 @@ local function GetRow(self, i)
         extra:SetWordWrap(false)
         local value = self:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
         local item = self:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        item:SetPoint("TOPLEFT", self.body, "TOPLEFT", 12, y)
+        item:SetPoint("TOPLEFT", self.body, "TOPLEFT", self.left, y)
         item:SetPoint("RIGHT", value, "LEFT", -6, 0)
         item:SetJustifyH("LEFT")
         item:SetWordWrap(false)
@@ -265,15 +266,17 @@ function PanelMethods:SetEntries(entries, format, tooltip)
     UpdateHeight(self)
 end
 
-function Panel.Create(parent, title, emptyMessage, subheadingCount)
+-- left is how far the text starts from the left edge, Panel.LEFT unless given
+function Panel.Create(parent, title, emptyMessage, subheadingCount, left)
     local panel = CreateFrame("Frame", nil, parent)
     for name, method in pairs(PanelMethods) do
         panel[name] = method
     end
+    panel.left = left or Panel.LEFT
     Panel.CreateDivider(panel, 0)
 
     panel.heading = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    panel.heading:SetPoint("TOPLEFT", HEADING_LEFT, -5)
+    panel.heading:SetPoint("TOPLEFT", panel.left, -5)
     panel.heading:SetText(title)
     panel.headingValue = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     panel.headingValue:SetPoint("TOPRIGHT", -10, -5)
@@ -283,11 +286,11 @@ function Panel.Create(parent, title, emptyMessage, subheadingCount)
         local y = -HEADER_HEIGHT - (i - 1) * ROW_HEIGHT
         local right = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
         right:SetPoint("TOPRIGHT", -10, y)
-        local left = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        left:SetPoint("TOPLEFT", 12, y)
-        left:SetPoint("RIGHT", right, "LEFT", -6, 0)
-        left:SetJustifyH("LEFT")
-        panel.subheadings[i] = { left = left, right = right }
+        local leftText = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+        leftText:SetPoint("TOPLEFT", panel.left, y)
+        leftText:SetPoint("RIGHT", right, "LEFT", -6, 0)
+        leftText:SetJustifyH("LEFT")
+        panel.subheadings[i] = { left = leftText, right = right }
     end
 
     -- Rows hang off the body, which moves up when the subheadings are hidden
@@ -295,7 +298,7 @@ function Panel.Create(parent, title, emptyMessage, subheadingCount)
     panel.body:SetHeight(1)
 
     panel.empty = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    panel.empty:SetPoint("TOPLEFT", panel.body, "TOPLEFT", 12, 0)
+    panel.empty:SetPoint("TOPLEFT", panel.body, "TOPLEFT", panel.left, 0)
     panel.empty:SetText(emptyMessage)
 
     panel.rows = {}

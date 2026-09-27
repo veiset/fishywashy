@@ -9,6 +9,8 @@ ns.DetailsWindow = DetailsWindow
 local WIDTH = 460
 local HEIGHT = 480
 local SCROLLBAR_WIDTH = 26
+-- Where text starts from the left edge; a little roomier than the main window
+local TEXT_LEFT = 12
 -- Pixels per mouse wheel notch: two rows
 local SCROLL_STEP = 32
 -- Seconds between refreshes while the window is open
@@ -143,6 +145,41 @@ local function Refresh()
     Layout(summary:GetParent())
 end
 
+-- Chat messages can't be longer than this
+local MAX_MESSAGE_LENGTH = 255
+local SHARED_TOP_ITEMS = 3
+
+-- "FishyWashy: 312 caught, 45% catch rate (312/690), fishing 311. Top: Raw Brilliant
+-- Smallfish 140, ...", from the all-time stats
+local function BuildShareMessage()
+    local total, entries = Stats.GetGlobalSummary(false)
+    local parts = { ("FishyWashy: %d caught"):format(total) }
+    local rate, caught, casts = Stats.GetGlobalCastSummary()
+    if rate then
+        table.insert(parts, (", %.0f%% catch rate (%d/%d)"):format(rate, caught, casts))
+    end
+    local skill = ns.Bait.GetFishingSkill()
+    if skill then
+        table.insert(parts, (", fishing %d"):format(skill.total))
+    end
+    local top = {}
+    for i = 1, math.min(SHARED_TOP_ITEMS, #entries) do
+        -- Plain names: links are long and would use up the message
+        local name = entries[i].link and entries[i].link:match("%[(.-)%]") or "?"
+        table.insert(top, ("%s %d"):format(name, entries[i].count))
+    end
+    if #top > 0 then
+        table.insert(parts, ". Top: " .. table.concat(top, ", "))
+    end
+    return table.concat(parts):sub(1, MAX_MESSAGE_LENGTH)
+end
+
+-- Puts the stats in the chat input box, so the player picks the channel and sends it
+local function ShareStats()
+    local open = ChatFrame_OpenChat or (ChatFrameUtil and ChatFrameUtil.OpenChat)
+    open(BuildShareMessage())
+end
+
 local function Create()
     window = CreateFrame("Frame", "FishyWashyDetailsFrame", UIParent, "BackdropTemplate")
     window:SetSize(WIDTH, HEIGHT)
@@ -168,7 +205,10 @@ local function Create()
     local title = window:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("TOPLEFT", 10, -8)
     title:SetText("FishyWashy all-time stats")
-    Panel.CreateCloseButton(window, function() window:Hide() end)
+    local close = Panel.CreateCloseButton(window, function() window:Hide() end)
+    local share = Panel.CreateSmallButton(window, "Share stats", 84, ShareStats)
+    share:SetHeight(16)
+    share:SetPoint("RIGHT", close, "LEFT", -6, 0)
     Panel.CreateDivider(window, -24)
 
     local scroll = CreateFrame("ScrollFrame", nil, window, "UIPanelScrollFrameTemplate")
@@ -183,13 +223,13 @@ local function Create()
         self:SetVerticalScroll(math.max(0, math.min(position, self:GetVerticalScrollRange())))
     end)
 
-    summary = Panel.Create(content, "All-time", "No fish caught yet", 2)
-    bait = Panel.Create(content, "Bait used", "No bait used from the bait buttons yet")
+    summary = Panel.Create(content, "All-time", "No fish caught yet", 2, TEXT_LEFT)
+    bait = Panel.Create(content, "Bait used", "No bait used from the bait buttons yet", nil, TEXT_LEFT)
     bait:SetStriped(true)
     for _, category in ipairs(CATEGORIES) do
-        sections[category.key] = Panel.Create(content, category.title, "None yet")
+        sections[category.key] = Panel.Create(content, category.title, "None yet", nil, TEXT_LEFT)
     end
-    zones = Panel.Create(content, "Zones", "No fish caught yet")
+    zones = Panel.Create(content, "Zones", "No fish caught yet", nil, TEXT_LEFT)
     -- Striped item rows, as the numbers are far from the names in this wide window
     for _, section in pairs(sections) do
         section:SetStriped(true)

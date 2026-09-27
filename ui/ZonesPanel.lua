@@ -6,7 +6,7 @@ local ZonesPanel = {}
 ns.ZonesPanel = ZonesPanel
 
 local TOP_SUBZONES = 1
-local AREA_WIDTH = 135
+local AREA_WIDTH = 110
 
 -- "Steamwheedle Port 64%", or nil when no areas are known
 local function FormatAreas(zone)

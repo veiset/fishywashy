@@ -6,7 +6,8 @@ local ConfigPanel = {}
 ns.ConfigPanel = ConfigPanel
 
 local HEIGHT = 193
-local LEFT = 10
+-- Checkboxes start a little left of the text, so their labels line up with it
+local LEFT = Panel.LEFT - 2
 
 StaticPopupDialogs["FISHYWASHY_RESET_ALL"] = {
     text = "Delete ALL FishyWashy data, including global stats, zones and history? This can't be undone.",
@@ -68,7 +69,7 @@ function ConfigPanel.Create(parent, stats, onLayoutChange)
     Panel.CreateDivider(panel, 0)
 
     local heading = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    heading:SetPoint("TOPLEFT", 12, -5)
+    heading:SetPoint("TOPLEFT", Panel.LEFT, -5)
     heading:SetText("Config")
 
     Panel.CreateSettingCheckbox(panel, LEFT, -19, "Fishing volume", "enabled", function()
@@ -80,7 +81,7 @@ function ConfigPanel.Create(parent, stats, onLayoutChange)
     -- Takes effect from the next cast
     Panel.CreateSettingCheckbox(panel, LEFT, -39, "Sound while alt-tabbed " .. Grey("(when fishing)"),
         "soundInBackground")
-    Panel.CreateSettingCheckbox(panel, LEFT, -59, "Double right-click to cast " .. Grey("(when fishing rod equipped)"),
+    Panel.CreateSettingCheckbox(panel, LEFT, -59, "Double right-click to cast " .. Grey("(when rod equipped)"),
         "rightClickCast")
 
     Panel.CreateSettingCheckbox(panel, LEFT, -79, "Include unsuccessful in stats", "statsIncludeMissed", function()
@@ -95,7 +96,7 @@ function ConfigPanel.Create(parent, stats, onLayoutChange)
     Panel.CreateSettingCheckbox(panel, LEFT, -147, "Show history", "showHistory", onLayoutChange)
 
     local resetAll = Panel.CreatePopupButton(panel, "Reset all data", 100, "FISHYWASHY_RESET_ALL")
-    resetAll:SetPoint("TOPLEFT", 12, -169)
+    resetAll:SetPoint("TOPLEFT", Panel.LEFT, -169)
 
     return panel
 end

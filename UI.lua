@@ -18,12 +18,14 @@ local function ApplyVisibility()
     frame:SetShown(wanted)
 end
 
-local WIDTH = 340
+local WIDTH = 286
 local MAIN_HAND_SLOT = 16
--- The bait row with the buttons stacked at its right end, then "Show config" under it
+-- The bait row, then a row of three buttons
 local BAIT_TOP = -33
-local SHOW_CONFIG_TOP = -65
-local ACTIONS_BOTTOM = -86
+local ACTIONS_ROW_TOP = -67
+local ACTION_BUTTON_WIDTH = 86
+local ACTION_BUTTON_HEIGHT = 22
+local ACTIONS_BOTTOM = -94
 
 -- Anchor by the top-left corner so height changes only move the bottom edge
 local function AnchorByTopLeft(f)
@@ -55,7 +57,7 @@ local function CreateMainFrame()
     end)
 
     local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("TOPLEFT", 10, -8)
+    title:SetPoint("TOPLEFT", 7, -8)
     title:SetText("FishyWashy")
     Panel.CreateDivider(f, -24)
     return f
@@ -64,7 +66,7 @@ end
 local function CreateBaitStatus(parent)
     local text = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     -- A fixed start, so the ticking bait timer only changes the end of the text
-    text:SetPoint("TOPLEFT", 151, -8)
+    text:SetPoint("TOPLEFT", 102, -8)
     text:SetJustifyH("LEFT")
 
     local skill
@@ -156,13 +158,13 @@ local function CreateBaitButtons(parent)
     end
 
     local emptyText = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    emptyText:SetPoint("TOPLEFT", 12, BAIT_TOP - 8)
+    emptyText:SetPoint("TOPLEFT", Panel.LEFT, BAIT_TOP - 8)
     emptyText:SetText("No bait in bags")
 
     local function Update()
         -- Secure buttons can't be shown, hidden or moved in combat
         if InCombatLockdown() then return end
-        local x = 12
+        local x = Panel.LEFT
         for _, itemID in ipairs(Config.BAIT_ITEMS) do
             local button = buttons[itemID]
             local count = Bait.GetCount(itemID)
@@ -175,7 +177,7 @@ local function CreateBaitButtons(parent)
                 button:Hide()
             end
         end
-        emptyText:SetShown(x == 12)
+        emptyText:SetShown(x == Panel.LEFT)
     end
 
     local events = CreateFrame("Frame")
@@ -267,14 +269,33 @@ function UI.Init()
         Layout()
     end)
 
-    -- The buttons stacked at the right end of the bait row
-    local newSession = Panel.CreatePopupButton(frame, "New session", 90, "FISHYWASHY_RESET")
-    newSession:SetPoint("TOPRIGHT", -10, BAIT_TOP)
-    local globalStatsButton = Panel.CreateSmallButton(frame, "Global stats", 90, DetailsWindow.Toggle)
-    globalStatsButton:SetPoint("TOPRIGHT", newSession, "BOTTOMRIGHT", 0, -2)
-
-    -- "Show config" on its own row under the bait
-    Panel.CreateSettingCheckbox(frame, 10, SHOW_CONFIG_TOP, "Show config", "showConfig", Layout)
+    -- One row of buttons under the bait
+    local configButton
+    -- Reads "Hide config" and stays lit, with white text, while the config panel is open
+    local function UpdateConfigButton()
+        local shown = Storage.GetSetting("showConfig")
+        configButton:SetText(shown and "Hide config" or "Show config")
+        configButton:SetNormalFontObject(shown and "GameFontHighlightSmall" or "GameFontNormalSmall")
+        if shown then
+            configButton:LockHighlight()
+        else
+            configButton:UnlockHighlight()
+        end
+    end
+    configButton = Panel.CreateSmallButton(frame, "", ACTION_BUTTON_WIDTH, function()
+        Storage.SetSetting("showConfig", not Storage.GetSetting("showConfig"))
+        UpdateConfigButton()
+        Layout()
+    end)
+    configButton:SetPoint("TOPLEFT", Panel.LEFT, ACTIONS_ROW_TOP)
+    UpdateConfigButton()
+    local globalStatsButton = Panel.CreateSmallButton(frame, "Global stats", ACTION_BUTTON_WIDTH, DetailsWindow.Toggle)
+    globalStatsButton:SetPoint("LEFT", configButton, "RIGHT", 4, 0)
+    local newSession = Panel.CreatePopupButton(frame, "New session", ACTION_BUTTON_WIDTH, "FISHYWASHY_RESET")
+    newSession:SetPoint("LEFT", globalStatsButton, "RIGHT", 4, 0)
+    for _, button in ipairs({ configButton, globalStatsButton, newSession }) do
+        button:SetHeight(ACTION_BUTTON_HEIGHT)
+    end
 
     Panel.CreateCloseButton(frame, function()
         if InCombatLockdown() then return end

@@ -14,7 +14,7 @@ local LABEL_HOURS = { 0, 6, 12, 18 }
 -- Draws the graph in the given frame; returns a function that redraws it
 function ActivityGraph.Create(parent)
     local graph = CreateFrame("Frame", nil, parent)
-    graph:SetPoint("TOPLEFT", 12, 0)
+    graph:SetPoint("TOPLEFT", ns.Panel.LEFT, 0)
     graph:SetPoint("TOPRIGHT", -10, 0)
     graph:SetHeight(GRAPH_HEIGHT)
     local baseline = graph:CreateTexture(nil, "ARTWORK")
