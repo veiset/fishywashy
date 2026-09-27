@@ -7,14 +7,14 @@ ns.Storage = Storage
 local SCHEMA_VERSION = 1
 
 local DEFAULTS = {
-    enabled = false,
-    volume = 1,
+    enabled = true,
+    volume = 0.85,
     soundInBackground = true,
     rightClickCast = false,
     showStats = true,
     statsIncludeMissed = false,
     showAdvancedStats = true,
-    showConfig = false,
+    showConfig = true,
     showGlobalStats = true,
     showZones = true,
     showHistory = true,

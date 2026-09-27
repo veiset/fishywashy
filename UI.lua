@@ -7,9 +7,15 @@ local UI = {}
 ns.UI = UI
 
 local frame
+-- Closed with the X or /fishy; stays hidden until a fishing pole is equipped or /fishy is used
+local closed = false
 
 local WIDTH = 340
-local BAIT_TOP = -30
+local MAIN_HAND_SLOT = 16
+-- "Show config" and "New session" are stacked from ACTIONS_TOP; the bait buttons are
+-- centred beside them
+local ACTIONS_TOP = -30
+local BAIT_TOP = -35
 local ACTIONS_BOTTOM = -72
 
 -- Anchor by the top-left corner so height changes only move the bottom edge
@@ -50,8 +56,9 @@ end
 
 local function CreateBaitStatus(parent)
     local text = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    text:SetPoint("TOPRIGHT", -10, -9)
-    text:SetJustifyH("RIGHT")
+    -- A fixed start, so the ticking bait timer only changes the end of the text
+    text:SetPoint("TOPLEFT", 131, -8)
+    text:SetJustifyH("LEFT")
 
     local function Update()
         if not Bait.HasFishingPole() then
@@ -59,11 +66,15 @@ local function CreateBaitStatus(parent)
             return
         end
         local timeLeft = Bait.GetTimeLeft()
+        local bait
         if timeLeft then
-            text:SetText(("Bait: |cff40ff40applied|r (%d:%02d)"):format(timeLeft / 60, timeLeft % 60))
+            bait = ("Bait: |cff40ff40applied|r (%d:%02d)"):format(timeLeft / 60, timeLeft % 60)
         else
-            text:SetText("Bait: |cffff4040none|r")
+            bait = "Bait: |cffff4040none|r"
         end
+        -- The skill in the blue the game uses for skill messages
+        local skill = Bait.GetFishingSkill()
+        text:SetText(skill and ("Fishing |cff5555ff%d|r   %s"):format(skill, bait) or bait)
     end
 
     Update()
@@ -139,7 +150,7 @@ local function CreateBaitButtons(parent)
 end
 
 StaticPopupDialogs["FISHYWASHY_RESET"] = {
-    text = "Reset the session? This clears the session stats and history; global stats are kept.",
+    text = "Start a new session? This clears the session stats and history; global stats are kept.",
     button1 = YES,
     button2 = NO,
     OnAccept = function() Catches.Reset() end,
@@ -209,17 +220,40 @@ function UI.Init()
         Layout()
     end)
 
-    -- To the right of the bait buttons: "Show config" above "Reset session", left-aligned
-    local resetSession = Panel.CreatePopupButton(frame, "Reset session", 90, "FISHYWASHY_RESET")
-    resetSession:SetPoint("TOPRIGHT", -10, BAIT_TOP - 20)
+    -- To the right of the bait buttons: "Show config" above "New session", left-aligned
+    local newSession = Panel.CreatePopupButton(frame, "New session", 90, "FISHYWASHY_RESET")
+    newSession:SetPoint("TOPRIGHT", -10, ACTIONS_TOP - 20)
     local showConfig = Panel.CreateSettingCheckbox(frame, 0, 0, "Show config", "showConfig", Layout)
     showConfig:ClearAllPoints()
-    showConfig:SetPoint("BOTTOMLEFT", resetSession, "TOPLEFT", 0, 2)
+    showConfig:SetPoint("BOTTOMLEFT", newSession, "TOPLEFT", 0, 2)
 
-    -- Only show the frame while a fishing pole is equipped
+    -- A white "x" in a small box, in the same style as the window; turns gold on hover
+    local close = CreateFrame("Button", nil, frame, "BackdropTemplate")
+    close:SetSize(16, 16)
+    close:SetPoint("TOPRIGHT", -2, -5)
+    close:SetBackdrop({
+        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        edgeSize = 8,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 },
+    })
+    close:SetBackdropColor(0, 0, 0, 0.5)
+    close:SetBackdropBorderColor(1, 1, 1, 0.6)
+    close:SetNormalFontObject("GameFontHighlight")
+    close:SetHighlightFontObject("GameFontNormal")
+    close:SetText("x")
+    -- The lowercase x sits low in the font, so lift it to the middle of the box
+    close:GetFontString():SetPoint("CENTER", 0, 1)
+    close:SetScript("OnClick", function()
+        if InCombatLockdown() then return end
+        closed = true
+        frame:Hide()
+    end)
+
+    -- Only show the frame while a fishing pole is equipped and it hasn't been closed
     local function UpdateVisibility()
         if InCombatLockdown() then return end
-        frame:SetShown(Bait.HasFishingPole())
+        frame:SetShown(Bait.HasFishingPole() and not closed)
     end
 
     Catches.OnChange(Layout)
@@ -227,7 +261,11 @@ function UI.Init()
     events:RegisterEvent("PLAYER_ENTERING_WORLD")
     events:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
     events:RegisterEvent("PLAYER_REGEN_ENABLED")
-    events:SetScript("OnEvent", function()
+    events:SetScript("OnEvent", function(_, event, slot)
+        -- Equipping a fishing pole opens the frame again after it was closed
+        if event == "PLAYER_EQUIPMENT_CHANGED" and slot == MAIN_HAND_SLOT and Bait.HasFishingPole() then
+            closed = false
+        end
         Layout()
         UpdateVisibility()
     end)
@@ -237,5 +275,6 @@ end
 
 function UI.Toggle()
     if InCombatLockdown() then return end
-    frame:SetShown(not frame:IsShown())
+    closed = frame:IsShown()
+    frame:SetShown(not closed)
 end

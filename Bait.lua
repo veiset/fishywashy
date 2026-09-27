@@ -27,6 +27,27 @@ function Bait.HasFishingPole()
     return classID == WEAPON_CLASS and subclassID == FISHING_POLE_SUBCLASS
 end
 
+-- Total fishing skill: the trained rank plus bonuses from the pole, bait and other gear.
+-- nil if Fishing isn't found.
+function Bait.GetFishingSkill()
+    if GetProfessions then
+        -- Newer clients: Fishing is the fourth profession slot
+        local fishing = select(4, GetProfessions())
+        if fishing then
+            local _, _, rank, _, _, _, _, modifier = GetProfessionInfo(fishing)
+            return rank + (modifier or 0)
+        end
+    elseif GetNumSkillLines then
+        -- Older clients list it among the skills; missing if its section is collapsed
+        for i = 1, GetNumSkillLines() do
+            local name, isHeader, _, rank, _, modifier = GetSkillLineInfo(i)
+            if not isHeader and name == ns.Catches.FISHING then
+                return rank + modifier
+            end
+        end
+    end
+end
+
 -- Seconds left on the bait, or nil when none is applied.
 function Bait.GetTimeLeft()
     local hasEnchant, expiration = GetWeaponEnchantInfo()

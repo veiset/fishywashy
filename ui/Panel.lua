@@ -8,7 +8,7 @@ local Panel = {}
 ns.Panel = Panel
 
 local ROW_HEIGHT = 16
-local HEADER_HEIGHT = 19
+local HEADER_HEIGHT = 21
 local GAP = 6
 local EXTRA_WIDTH = 60
 local HEADING_LEFT = 12

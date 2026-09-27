@@ -19,11 +19,22 @@ StaticPopupDialogs["FISHYWASHY_RESET_ALL"] = {
     preferredIndex = 3,
 }
 
-local function CreateVolumeSlider(parent, anchor)
+local function Grey(text)
+    return "|cff9d9d9d" .. text .. "|r"
+end
+
+-- Right-aligned on the checkbox row starting at top, with the value at the right edge
+local function CreateVolumeSlider(parent, top)
+    local valueText = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    -- Checkboxes are 18 high, so the row's middle is 9 below its top
+    valueText:SetPoint("RIGHT", parent, "TOPRIGHT", -10, top - 9)
+    valueText:SetWidth(32)
+    valueText:SetJustifyH("RIGHT")
+
     local slider = CreateFrame("Slider", nil, parent, "BackdropTemplate")
     slider:SetOrientation("HORIZONTAL")
     slider:SetSize(100, 14)
-    slider:SetPoint("LEFT", anchor, "RIGHT", 10, 0)
+    slider:SetPoint("RIGHT", valueText, "LEFT", -6, 0)
     slider:SetBackdrop({
         bgFile = "Interface/Buttons/UI-SliderBar-Background",
         edgeFile = "Interface/Buttons/UI-SliderBar-Border",
@@ -35,9 +46,6 @@ local function CreateVolumeSlider(parent, anchor)
     slider:SetMinMaxValues(0, 1)
     slider:SetValueStep(0.05)
     slider:SetObeyStepOnDrag(true)
-
-    local valueText = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    valueText:SetPoint("LEFT", slider, "RIGHT", 6, 0)
 
     local function ShowValue(value)
         valueText:SetText(math.floor(value * 100 + 0.5) .. "%")
@@ -63,15 +71,17 @@ function ConfigPanel.Create(parent, stats, globalStats, onLayoutChange)
     heading:SetPoint("TOPLEFT", 12, -5)
     heading:SetText("Config")
 
-    local _, volumeLabel = Panel.CreateSettingCheckbox(panel, LEFT, -19, "Fishing volume", "enabled", function()
+    Panel.CreateSettingCheckbox(panel, LEFT, -19, "Fishing volume", "enabled", function()
         if not Storage.GetSetting("enabled") then
             Sound.Restore()
         end
     end)
-    CreateVolumeSlider(panel, volumeLabel)
+    CreateVolumeSlider(panel, -19)
     -- Takes effect from the next cast
-    Panel.CreateSettingCheckbox(panel, LEFT, -39, "Sound while alt-tabbed", "soundInBackground")
-    Panel.CreateSettingCheckbox(panel, LEFT, -59, "Double right-click to cast", "rightClickCast")
+    Panel.CreateSettingCheckbox(panel, LEFT, -39, "Sound while alt-tabbed " .. Grey("(when fishing)"),
+        "soundInBackground")
+    Panel.CreateSettingCheckbox(panel, LEFT, -59, "Double right-click to cast " .. Grey("(when fishing rod equipped)"),
+        "rightClickCast")
 
     Panel.CreateSettingCheckbox(panel, LEFT, -79, "Include unsuccessful in stats", "statsIncludeMissed", function()
         -- The unsuccessful row changes the stats' height
