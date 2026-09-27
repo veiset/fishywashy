@@ -178,7 +178,7 @@ local function BuildShareMessage()
     if rate then
         table.insert(parts, (", %.0f%% catch rate (%d/%d)"):format(rate, caught, casts))
     end
-    local skill = ns.Bait.GetFishingSkill()
+    local skill = ns.CharacterInfo.GetFishingSkill()
     if skill then
         table.insert(parts, (", fishing %d"):format(skill.total))
     end

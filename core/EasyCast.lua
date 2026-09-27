@@ -1,5 +1,5 @@
 local _, ns = ...
-local Config, Storage, Bait, Catches = ns.Config, ns.Storage, ns.Bait, ns.Catches
+local Config, Storage, CharacterInfo, Catches = ns.Config, ns.Storage, ns.CharacterInfo, ns.Catches
 
 -- Double right-click on the world to cast Fishing while a fishing pole is equipped.
 
@@ -36,7 +36,7 @@ WorldFrame:HookScript("OnMouseDown", function(_, mouseButton)
     if mouseButton ~= "RightButton" then return end
     -- Bindings can't be changed in combat; right-clicking a unit should still target or loot it
     if not Storage.GetSetting("rightClickCast") or InCombatLockdown() or UnitExists("mouseover")
-        or not Bait.HasFishingPole() then
+        or not CharacterInfo.HasFishingPole() then
         return
     end
     -- While the line is out, right-clicks on the bobber are for looting it. Once the cast

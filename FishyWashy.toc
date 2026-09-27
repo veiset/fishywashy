@@ -9,6 +9,7 @@
 core\Utils.lua
 Config.lua
 core\Storage.lua
+core\CharacterInfo.lua
 core\Bait.lua
 core\Catches.lua
 core\Sound.lua

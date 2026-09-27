@@ -1,5 +1,6 @@
 local _, ns = ...
 local Utils, Config, Storage, Bait, Catches = ns.Utils, ns.Config, ns.Storage, ns.Bait, ns.Catches
+local CharacterInfo = ns.CharacterInfo
 local Panel, ConfigPanel, StatsPanel, HistoryPanel = ns.Panel, ns.ConfigPanel, ns.StatsPanel, ns.HistoryPanel
 local ZonesPanel, DetailsWindow = ns.ZonesPanel, ns.DetailsWindow
 
@@ -81,12 +82,12 @@ local function CreateBaitStatus(parent)
     hover:SetScript("OnLeave", GameTooltip_Hide)
 
     local function Update()
-        if not Bait.HasFishingPole() then
+        if not CharacterInfo.HasFishingPole() then
             skill = nil
             text:SetText("Bait: no fishing pole equipped")
             return
         end
-        skill = Bait.GetFishingSkill()
+        skill = CharacterInfo.GetFishingSkill()
         local timeLeft = Bait.GetTimeLeft()
         local bait
         if timeLeft then
@@ -221,7 +222,7 @@ local function CreateFoodButton(parent)
     -- Which food the button eats: only changeable out of combat
     local function UpdateFood()
         if InCombatLockdown() then return end
-        foodID = Bait.GetBestFood()
+        foodID = CharacterInfo.GetBestFood()
         button:SetShown(foodID ~= nil)
         if foodID then
             button:SetAttribute("item", "item:" .. foodID)
@@ -232,7 +233,7 @@ local function CreateFoodButton(parent)
 
     -- The buff timer, which can update any time
     local function UpdateTimer()
-        local left = Bait.GetFoodBuffTimeLeft()
+        local left = CharacterInfo.GetFoodBuffTimeLeft()
         timeLeft:SetText(left and Utils.FormatShortTime(left) or "")
         icon:SetDesaturated(left ~= nil)
         icon:SetAlpha(left and 0.6 or 1)
@@ -272,7 +273,7 @@ local function CreateFishingBuffIcon(parent, foodButton)
     frame:SetScript("OnLeave", GameTooltip_Hide)
 
     local function Update()
-        buff = Bait.GetOtherFishingBuff()
+        buff = CharacterInfo.GetOtherFishingBuff()
         frame:SetShown(buff ~= nil)
         if not buff then return end
         icon:SetTexture(buff.icon)
@@ -409,7 +410,7 @@ function UI.Init()
     -- Opens the frame when a fishing pole is equipped, unless it was closed. Never hides it,
     -- so a frame opened with /fishy stays open after combat or a loading screen.
     local function ShowIfFishing()
-        if Bait.HasFishingPole() and not closed then
+        if CharacterInfo.HasFishingPole() and not closed then
             wanted = true
         end
         ApplyVisibility()
@@ -432,10 +433,10 @@ function UI.Init()
             end)
             return
         end
-        if event == "PLAYER_EQUIPMENT_CHANGED" and slot == Bait.MAIN_HAND_SLOT then
+        if event == "PLAYER_EQUIPMENT_CHANGED" and slot == CharacterInfo.MAIN_HAND_SLOT then
             -- Only changing the main hand opens or hides the frame: equipping a fishing pole
             -- opens it, even after it was closed, and unequipping it hides it
-            wanted = Bait.HasFishingPole()
+            wanted = CharacterInfo.HasFishingPole()
             closed = false
         elseif event == "PLAYER_REGEN_ENABLED" then
             -- Apply anything that was blocked during combat
