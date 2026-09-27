@@ -1,0 +1,10 @@
+## Interface: 16001
+## Title: FishyWashy
+## Version: 0.4
+## IconTexture: Interface\AddOns\FishyWashy\icon
+## SavedVariables: FishyWashyDB
+
+Storage.lua
+Sound.lua
+UI.lua
+Core.lua
