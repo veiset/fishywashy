@@ -1,5 +1,27 @@
 local addonName, ns = ...
-local Storage, Sound, UI = ns.Storage, ns.Sound, ns.UI
+local Utils, Storage, Sound, Stats, UI = ns.Utils, ns.Storage, ns.Sound, ns.Stats, ns.UI
+
+-- Colours for the start-up message: the addon name, and the parts to notice
+local NAME_COLOR = "33ff99"
+local HIGHLIGHT_COLOR = "ffd100"
+
+-- "FishyWashy loaded, equip a fishing rod or type /fishy to open", then, once something has
+-- been caught, the all-time total, favourite zone and sessions
+local function PrintWelcome()
+    local name = Utils.Color("FishyWashy", NAME_COLOR)
+    print(("%s loaded, equip a fishing rod or type %s to open"):format(name, Utils.Color("/fishy", HIGHLIGHT_COLOR)))
+
+    local total = Stats.GetGlobalSummary()
+    if total == 0 then return end
+    local caught = ("%s caught so far"):format(Utils.Color(total, HIGHLIGHT_COLOR))
+    local zone = Stats.GetZoneSummary()[1]
+    if zone then
+        caught = ("%s, favourite zone: %s (%.0f%%)"):format(caught, Utils.Color(zone.zone, HIGHLIGHT_COLOR),
+            zone.percent)
+    end
+    caught = ("%s, sessions: %s"):format(caught, Utils.Color(Storage.GetGlobalSessions(), HIGHLIGHT_COLOR))
+    print(("%s %s"):format(name, caught))
+end
 
 local events = CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
@@ -10,7 +32,7 @@ events:SetScript("OnEvent", function(self, _, name)
     -- Settings left boosted by a logout or crash mid-cast
     Sound.Restore()
     UI.Init()
-    print("FishyWashy loaded, equip a fishing rod or type /fishy to open")
+    PrintWelcome()
 end)
 
 SLASH_FISHYWASHY1 = "/fishy"
