@@ -91,7 +91,6 @@ function Storage.Init()
     db.settings = db.settings or {}
     db.catches = db.catches or {}
     db.casts = db.casts or {}
-    db.statsStart = db.statsStart or time()
 
     db.globalItems = db.globalItems or {}
     db.globalZones = db.globalZones or {}
@@ -142,6 +141,8 @@ end
 -- for caught casts. Also counted in the all-time totals.
 function Storage.AddCast(cast)
     table.insert(db.casts, cast)
+    -- The session is timed from its first cast
+    db.statsStart = db.statsStart or cast.time
     AddCastCountsToGlobal(cast)
     AddHourToGlobal(cast)
 end
@@ -154,7 +155,8 @@ end
 function Storage.ClearCatches()
     db.catches = {}
     db.casts = {}
-    db.statsStart = time()
+    -- Set again by the session's first cast
+    db.statsStart = nil
     db.globalSessions = db.globalSessions + 1
 end
 
@@ -164,7 +166,7 @@ function Storage.ClearAll()
     Storage.Init()
 end
 
--- When the stats were last reset
+-- When the session's first cast started, or nil before the first cast
 function Storage.GetStatsStart()
     return db.statsStart
 end

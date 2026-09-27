@@ -190,12 +190,13 @@ function Stats.GetGlobalCastSummary()
     return SummarizeCasts(caught, caught + unsuccessful, seconds)
 end
 
--- Seconds since the stats were last reset
+-- Seconds since the session's first cast, or 0 before it
 function Stats.GetSessionLength()
-    return time() - Storage.GetStatsStart()
+    local start = Storage.GetStatsStart()
+    return start and time() - start or 0
 end
 
--- Items caught per hour since the stats were last reset
+-- Items caught per hour since the session's first cast
 function Stats.GetPerHour(total)
     return total / (math.max(Stats.GetSessionLength(), 1) / 3600)
 end
