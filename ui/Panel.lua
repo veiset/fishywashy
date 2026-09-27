@@ -40,17 +40,44 @@ function Panel.CreateSettingCheckbox(parent, left, top, text, settingKey, onChan
     return check, label
 end
 
--- A small button that asks for confirmation with the given StaticPopup
-function Panel.CreatePopupButton(parent, text, width, popup)
+function Panel.CreateSmallButton(parent, text, width, onClick)
     local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     button:SetSize(width, 18)
     button:SetNormalFontObject("GameFontNormalSmall")
     button:SetHighlightFontObject("GameFontHighlightSmall")
     button:SetText(text)
-    button:SetScript("OnClick", function()
+    button:SetScript("OnClick", onClick)
+    return button
+end
+
+-- A small button that asks for confirmation with the given StaticPopup
+function Panel.CreatePopupButton(parent, text, width, popup)
+    return Panel.CreateSmallButton(parent, text, width, function()
         StaticPopup_Show(popup)
     end)
-    return button
+end
+
+-- A white "x" in a small box at the top right, in the same style as the window; turns gold
+-- on hover
+function Panel.CreateCloseButton(parent, onClick)
+    local close = CreateFrame("Button", nil, parent, "BackdropTemplate")
+    close:SetSize(16, 16)
+    close:SetPoint("TOPRIGHT", -2, -5)
+    close:SetBackdrop({
+        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        edgeSize = 8,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 },
+    })
+    close:SetBackdropColor(0, 0, 0, 0.5)
+    close:SetBackdropBorderColor(1, 1, 1, 0.6)
+    close:SetNormalFontObject("GameFontHighlight")
+    close:SetHighlightFontObject("GameFontNormal")
+    close:SetText("x")
+    -- The lowercase x sits low in the font, so lift it to the middle of the box
+    close:GetFontString():SetPoint("CENTER", 0, 1)
+    close:SetScript("OnClick", onClick)
+    return close
 end
 
 function Panel.FormatTimeSince(timestamp)
@@ -116,7 +143,16 @@ local function GetRow(self, i)
         end)
         hover:SetScript("OnLeave", GameTooltip_Hide)
 
-        row = { item = item, value = value, extra = extra, hover = hover, y = y }
+        -- Faint background on every other row, for panels that ask for it
+        local stripe = self:CreateTexture(nil, "BACKGROUND")
+        stripe:SetColorTexture(1, 1, 1, 0.03)
+        -- Text sits at the top of its row, so start a little above it to centre the band
+        stripe:SetPoint("TOPLEFT", self.body, "TOPLEFT", 6, y + 3)
+        stripe:SetPoint("TOPRIGHT", self.body, "TOPRIGHT", -6, y + 3)
+        stripe:SetHeight(ROW_HEIGHT)
+        stripe:Hide()
+
+        row = { item = item, value = value, extra = extra, hover = hover, stripe = stripe, y = y }
         self.rows[i] = row
     end
     return row
@@ -127,6 +163,12 @@ function PanelMethods:AddHeadingCheckbox(text, settingKey, onChange)
     local check = Panel.CreateSettingCheckbox(self, 0, 0, text, settingKey, onChange)
     check:ClearAllPoints()
     check:SetPoint("LEFT", self.heading, "RIGHT", 6, 0)
+end
+
+-- Gives every other row a faint background, so names are easy to match with their numbers.
+-- Entries with heading = true are left plain.
+function PanelMethods:SetStriped(striped)
+    self.striped = striped
 end
 
 -- Gives the value column a fixed width with left-aligned text, instead of fitting its text
@@ -187,6 +229,9 @@ function PanelMethods:SetEntries(entries, format, tooltip)
     end
     -- The value sits at the right edge, or left of the extra column when there is one
     local valueRight = hasExtra and -(10 + EXTRA_WIDTH + 6) or -10
+    -- Stripes alternate between plain rows; rows marked heading are never striped and start
+    -- the alternation again
+    local stripeIndex = 0
     for i, text in ipairs(texts) do
         local row = GetRow(self, i)
         row.value:SetPoint("TOPRIGHT", self.body, "TOPRIGHT", valueRight, row.y)
@@ -200,12 +245,20 @@ function PanelMethods:SetEntries(entries, format, tooltip)
         row.extra:SetText(text[3] or "")
         row.hover.entry = entries[i]
         row.hover:EnableMouse(tooltip ~= nil)
+        if entries[i].heading then
+            stripeIndex = 0
+            row.stripe:Hide()
+        else
+            stripeIndex = stripeIndex + 1
+            row.stripe:SetShown(self.striped and stripeIndex % 2 == 0)
+        end
     end
     for i = #entries + 1, #self.rows do
         self.rows[i].item:SetText("")
         self.rows[i].value:SetText("")
         self.rows[i].extra:SetText("")
         self.rows[i].hover:EnableMouse(false)
+        self.rows[i].stripe:Hide()
     end
     self.empty:SetShown(#entries == 0)
     self.rowCount = #entries

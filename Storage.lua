@@ -19,7 +19,7 @@ local DEFAULTS = {
     showZones = true,
     showHistory = true,
     showHistoryGraph = false,
-    globalShowLastSeen = false,
+    globalCurrentZone = false,
 }
 
 local db
@@ -27,20 +27,41 @@ local db
 -- All-time totals, kept through session resets:
 --   globalItems        { [itemID] = { link, icon, count, lastSeen } }
 --   globalZones        { [zone] = { count, subzones = { [subzone] = count } } }, items caught there
+--   globalZoneItems    { [zone] = { [itemID] = { link, icon, count, lastSeen } } }
+--   globalAreaItems    { [zone] = { [subzone] = { [itemID] = { link, icon, count, lastSeen } } } }
 --   globalHours        { [hour + 1] = casts started in that hour of the day, local time }
 --   globalCaughtCasts, globalUnsuccessful, globalCatchSeconds
 --   globalSessions     sessions started, counting the current one
 
-local function AddItemToGlobal(catch)
-    local item = db.globalItems[catch.itemID]
+local function AddItemTo(items, catch)
+    local item = items[catch.itemID]
     if not item then
         item = { count = 0 }
-        db.globalItems[catch.itemID] = item
+        items[catch.itemID] = item
     end
     item.link = catch.link
     item.icon = catch.icon
     item.count = item.count + catch.quantity
     item.lastSeen = catch.time
+end
+
+local function AddItemToGlobal(catch)
+    AddItemTo(db.globalItems, catch)
+end
+
+local function AddZoneItemToGlobal(catch)
+    if not catch.zone then return end
+    db.globalZoneItems[catch.zone] = db.globalZoneItems[catch.zone] or {}
+    AddItemTo(db.globalZoneItems[catch.zone], catch)
+end
+
+local function AddAreaItemToGlobal(catch)
+    -- The subzone is empty away from named areas, and missing on older catches
+    if not catch.zone or not catch.subzone or catch.subzone == "" then return end
+    local zone = db.globalAreaItems[catch.zone] or {}
+    db.globalAreaItems[catch.zone] = zone
+    zone[catch.subzone] = zone[catch.subzone] or {}
+    AddItemTo(zone[catch.subzone], catch)
 end
 
 local function AddZoneToGlobal(catch)
@@ -92,6 +113,8 @@ function Storage.Init()
 
     InitGlobal("globalItems", {}, db.catches, AddItemToGlobal)
     InitGlobal("globalZones", {}, db.catches, AddZoneToGlobal)
+    InitGlobal("globalZoneItems", {}, db.catches, AddZoneItemToGlobal)
+    InitGlobal("globalAreaItems", {}, db.catches, AddAreaItemToGlobal)
     -- Older saved data kept only a count per zone
     for name, zone in pairs(db.globalZones) do
         if type(zone) == "number" then
@@ -137,6 +160,8 @@ function Storage.AddCatch(catch)
     table.insert(db.catches, catch)
     AddItemToGlobal(catch)
     AddZoneToGlobal(catch)
+    AddZoneItemToGlobal(catch)
+    AddAreaItemToGlobal(catch)
 end
 
 function Storage.GetCatches()
@@ -180,6 +205,16 @@ end
 
 function Storage.GetGlobalZones()
     return db.globalZones
+end
+
+-- All-time totals per item for one zone, or an empty table if nothing was caught there
+function Storage.GetGlobalZoneItems(zone)
+    return db.globalZoneItems[zone] or {}
+end
+
+-- All-time totals per item for one area of a zone, or an empty table
+function Storage.GetGlobalAreaItems(zone, subzone)
+    return (db.globalAreaItems[zone] or {})[subzone] or {}
 end
 
 function Storage.GetGlobalHours()

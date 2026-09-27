@@ -34,3 +34,6 @@ Config.DOUBLE_CLICK_TIME = 0.4
 
 -- Number of rows in the History panel
 Config.RECENT_CATCHES = 5
+
+-- Number of items listed in the Global stats panel; the rest are in the Details window
+Config.GLOBAL_STATS_ROWS = 5

@@ -1,7 +1,7 @@
 local _, ns = ...
 local Config, Storage, Bait, Catches = ns.Config, ns.Storage, ns.Bait, ns.Catches
 local Panel, ConfigPanel, StatsPanel, HistoryPanel = ns.Panel, ns.ConfigPanel, ns.StatsPanel, ns.HistoryPanel
-local GlobalStatsPanel, ZonesPanel = ns.GlobalStatsPanel, ns.ZonesPanel
+local GlobalStatsPanel, ZonesPanel, DetailsWindow = ns.GlobalStatsPanel, ns.ZonesPanel, ns.DetailsWindow
 
 local UI = {}
 ns.UI = UI
@@ -12,11 +12,10 @@ local closed = false
 
 local WIDTH = 340
 local MAIN_HAND_SLOT = 16
--- "Show config" and "New session" are stacked from ACTIONS_TOP; the bait buttons are
--- centred beside them
-local ACTIONS_TOP = -30
-local BAIT_TOP = -35
-local ACTIONS_BOTTOM = -72
+-- The bait row with the buttons stacked at its right end, then "Show config" under it
+local BAIT_TOP = -33
+local SHOW_CONFIG_TOP = -65
+local ACTIONS_BOTTOM = -86
 
 -- Anchor by the top-left corner so height changes only move the bottom edge
 local function AnchorByTopLeft(f)
@@ -253,7 +252,7 @@ function UI.Init()
         stats.Refresh()
         Layout()
     end)
-    globalStats:AddHeadingCheckbox("Advanced", "globalShowLastSeen", function()
+    globalStats:AddHeadingCheckbox("Current zone", "globalCurrentZone", function()
         globalStats.Refresh()
         Layout()
     end)
@@ -262,31 +261,16 @@ function UI.Init()
         Layout()
     end)
 
-    -- To the right of the bait buttons: "Show config" above "New session", left-aligned
+    -- The buttons stacked at the right end of the bait row
     local newSession = Panel.CreatePopupButton(frame, "New session", 90, "FISHYWASHY_RESET")
-    newSession:SetPoint("TOPRIGHT", -10, ACTIONS_TOP - 20)
-    local showConfig = Panel.CreateSettingCheckbox(frame, 0, 0, "Show config", "showConfig", Layout)
-    showConfig:ClearAllPoints()
-    showConfig:SetPoint("BOTTOMLEFT", newSession, "TOPLEFT", 0, 2)
+    newSession:SetPoint("TOPRIGHT", -10, BAIT_TOP)
+    local globalStatsButton = Panel.CreateSmallButton(frame, "Global stats", 90, DetailsWindow.Toggle)
+    globalStatsButton:SetPoint("TOPRIGHT", newSession, "BOTTOMRIGHT", 0, -2)
 
-    -- A white "x" in a small box, in the same style as the window; turns gold on hover
-    local close = CreateFrame("Button", nil, frame, "BackdropTemplate")
-    close:SetSize(16, 16)
-    close:SetPoint("TOPRIGHT", -2, -5)
-    close:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        edgeSize = 8,
-        insets = { left = 2, right = 2, top = 2, bottom = 2 },
-    })
-    close:SetBackdropColor(0, 0, 0, 0.5)
-    close:SetBackdropBorderColor(1, 1, 1, 0.6)
-    close:SetNormalFontObject("GameFontHighlight")
-    close:SetHighlightFontObject("GameFontNormal")
-    close:SetText("x")
-    -- The lowercase x sits low in the font, so lift it to the middle of the box
-    close:GetFontString():SetPoint("CENTER", 0, 1)
-    close:SetScript("OnClick", function()
+    -- "Show config" on its own row under the bait
+    Panel.CreateSettingCheckbox(frame, 10, SHOW_CONFIG_TOP, "Show config", "showConfig", Layout)
+
+    Panel.CreateCloseButton(frame, function()
         if InCombatLockdown() then return end
         closed = true
         frame:Hide()

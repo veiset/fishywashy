@@ -53,15 +53,19 @@ function Stats.GetSummary(includeMissed)
 end
 
 -- All-time count and share of each item, most caught first, and the all-time total. With
--- includeMissed, unsuccessful casts are counted as an entry { missed = true } too.
-function Stats.GetGlobalSummary(includeMissed)
+-- includeMissed, unsuccessful casts are counted as an entry { missed = true } too. With a
+-- zone, only items caught there are counted; unsuccessful casts aren't known per zone.
+function Stats.GetGlobalSummary(includeMissed, zone)
     local total, entries = 0, {}
-    for _, item in pairs(Storage.GetGlobalItems()) do
-        table.insert(entries, { link = item.link, icon = item.icon, count = item.count, lastSeen = item.lastSeen })
+    local items = zone and Storage.GetGlobalZoneItems(zone) or Storage.GetGlobalItems()
+    for itemID, item in pairs(items) do
+        table.insert(entries, {
+            itemID = itemID, link = item.link, icon = item.icon, count = item.count, lastSeen = item.lastSeen,
+        })
         total = total + item.count
     end
     local _, missed = Storage.GetGlobalCasts()
-    if includeMissed and missed > 0 then
+    if includeMissed and not zone and missed > 0 then
         table.insert(entries, { missed = true, count = missed })
         total = total + missed
     end
@@ -69,15 +73,48 @@ function Stats.GetGlobalSummary(includeMissed)
     return total, entries
 end
 
+local GetItemInfoInstant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+local CONSUMABLE_CLASS = 0
+local TRADE_GOODS_CLASS = 7
+
+-- "junk" for poor (grey) items, "fish" for food and trade goods such as raw fish, and
+-- "other" for everything else, such as chests, clams and recipes
+function Stats.GetItemCategory(itemID, link)
+    local quality = C_Item and C_Item.GetItemQualityByID and C_Item.GetItemQualityByID(itemID)
+    -- Not cached yet: links carry the quality as "|cnIQ0:" or as the grey colour
+    if not quality and link then
+        quality = tonumber(link:match("IQ(%d)")) or (link:find("ff9d9d9d") and 0)
+    end
+    if quality == 0 then
+        return "junk"
+    end
+    local classID = select(6, GetItemInfoInstant(itemID))
+    if classID == CONSUMABLE_CLASS or classID == TRADE_GOODS_CLASS then
+        return "fish"
+    end
+    return "other"
+end
+
+-- The items caught in one area and their drop rate: each item's share of that area's catches
+local function GetAreaItems(zone, subzone)
+    local total, items = 0, {}
+    for itemID, item in pairs(Storage.GetGlobalAreaItems(zone, subzone)) do
+        table.insert(items, { itemID = itemID, link = item.link, icon = item.icon, count = item.count })
+        total = total + item.count
+    end
+    AddShares(items, total)
+    return items
+end
+
 -- All-time items caught in each zone and its share of the total, most first, with the zone's
--- areas and each one's share of the zone, most first:
--- { zone, count, percent, subzones = { { name, count, percent } } }
+-- areas and each one's share of the zone, most first, and each area's items:
+-- { zone, count, percent, subzones = { { name, count, percent, items = { ... } } } }
 function Stats.GetZoneSummary()
     local total, entries = 0, {}
     for name, zone in pairs(Storage.GetGlobalZones()) do
         local subzones = {}
         for subzone, count in pairs(zone.subzones) do
-            table.insert(subzones, { name = subzone, count = count })
+            table.insert(subzones, { name = subzone, count = count, items = GetAreaItems(name, subzone) })
         end
         AddShares(subzones, zone.count)
         table.insert(entries, { zone = name, count = zone.count, subzones = subzones })
