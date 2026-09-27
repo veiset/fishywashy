@@ -9,10 +9,14 @@ Storage.lua
 Bait.lua
 Catches.lua
 Sound.lua
+EasyCast.lua
 Stats.lua
 ui\Panel.lua
 ui\ConfigPanel.lua
+ui\ActivityGraph.lua
 ui\StatsPanel.lua
 ui\HistoryPanel.lua
+ui\GlobalStatsPanel.lua
+ui\ZonesPanel.lua
 UI.lua
 Core.lua

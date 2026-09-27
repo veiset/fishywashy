@@ -23,16 +23,15 @@ function StatsPanel.Create(parent)
     end
 
     local function UpdateCasts()
-        local rate, caughtCasts, allCasts, average = Stats.GetCastSummary()
-        panel:SetSubheading(2,
-            rate and ("Catch rate: %.0f%% (%d/%d)"):format(rate, caughtCasts, allCasts) or "Catch rate: -",
-            average and ("%.1fs per catch"):format(average) or "- per catch")
+        panel:SetSubheading(2, Panel.FormatCastSummary(Stats.GetCastSummary()))
     end
 
     function panel.Refresh()
         local total, entries
         total, entries, caught = Stats.GetSummary(Storage.GetSetting("statsIncludeMissed"))
         panel:SetHeadingValue("Total: " .. total)
+        -- Advanced stats: the fish/hour and catch rate lines
+        panel:SetSubheadingsShown(Storage.GetSetting("showAdvancedStats"))
         panel:SetEntries(entries, function(entry)
             local text = entry.missed and Panel.FormatMiss() or Panel.FormatItem(entry.icon, entry.link)
             return text, ("%d (%.0f%%)"):format(entry.count, entry.percent)

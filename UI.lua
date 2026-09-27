@@ -1,16 +1,16 @@
 local _, ns = ...
 local Config, Storage, Bait, Catches = ns.Config, ns.Storage, ns.Bait, ns.Catches
 local Panel, ConfigPanel, StatsPanel, HistoryPanel = ns.Panel, ns.ConfigPanel, ns.StatsPanel, ns.HistoryPanel
+local GlobalStatsPanel, ZonesPanel = ns.GlobalStatsPanel, ns.ZonesPanel
 
 local UI = {}
 ns.UI = UI
 
 local frame
 
-local WIDTH = 285
+local WIDTH = 340
 local BAIT_TOP = -30
-local TOGGLES_LEFT = 180
-local ACTIONS_BOTTOM = -66
+local ACTIONS_BOTTOM = -72
 
 -- Anchor by the top-left corner so height changes only move the bottom edge
 local function AnchorByTopLeft(f)
@@ -138,66 +138,83 @@ local function CreateBaitButtons(parent)
     Update()
 end
 
+StaticPopupDialogs["FISHYWASHY_RESET"] = {
+    text = "Reset the session? This clears the session stats and history; global stats are kept.",
+    button1 = YES,
+    button2 = NO,
+    OnAccept = function() Catches.Reset() end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
 function UI.Init()
     frame = CreateMainFrame()
     CreateBaitStatus(frame)
     CreateBaitButtons(frame)
 
     local stats = StatsPanel.Create(frame)
+    local globalStats = GlobalStatsPanel.Create(frame)
+    local zones = ZonesPanel.Create(frame)
     local history = HistoryPanel.Create(frame)
-    history:SetPoint("TOPLEFT", stats, "BOTTOMLEFT")
-    history:SetPoint("TOPRIGHT", stats, "BOTTOMRIGHT")
-
     local config
-    -- The frame holds secure buttons, so it can't be resized, shown or hidden in combat;
-    -- these are retried when combat ends.
-    local function UpdateHeight()
-        if InCombatLockdown() then return end
+
+    -- Shows the panels the settings ask for, stacks them under the bait row in this order,
+    -- and sizes the frame to fit
+    local function Layout()
+        config:SetShown(Storage.GetSetting("showConfig"))
+        stats:SetShown(Storage.GetSetting("showStats"))
+        globalStats:SetShown(Storage.GetSetting("showGlobalStats"))
+        zones:SetShown(Storage.GetSetting("showZones"))
+        history:SetShown(Storage.GetSetting("showHistory"))
+
         local height = -ACTIONS_BOTTOM + 2
-        if Storage.GetSetting("showConfig") then
-            height = height + config:GetHeight()
+        local previous
+        for _, panel in ipairs({ config, stats, globalStats, zones, history }) do
+            if panel:IsShown() then
+                panel:ClearAllPoints()
+                if previous then
+                    panel:SetPoint("TOPLEFT", previous, "BOTTOMLEFT")
+                    panel:SetPoint("TOPRIGHT", previous, "BOTTOMRIGHT")
+                else
+                    panel:SetPoint("TOPLEFT", 0, ACTIONS_BOTTOM)
+                    panel:SetPoint("TOPRIGHT", 0, ACTIONS_BOTTOM)
+                end
+                previous = panel
+                height = height + panel:GetHeight()
+            end
         end
-        if Storage.GetSetting("showStats") then
-            height = height + stats:GetHeight() + history:GetHeight()
-        end
+
+        -- The frame holds secure buttons, so it can't be resized in combat; this is retried
+        -- when combat ends
+        if InCombatLockdown() then return end
         AnchorByTopLeft(frame)
         frame:SetHeight(height)
     end
 
-    config = ConfigPanel.Create(frame, stats, UpdateHeight)
-    config:SetPoint("TOPLEFT", 0, ACTIONS_BOTTOM)
-    config:SetPoint("TOPRIGHT", 0, ACTIONS_BOTTOM)
+    config = ConfigPanel.Create(frame, stats, globalStats, Layout)
 
-    -- The stats sit under the config panel when it's open, and take its place when it's closed
-    local function ApplyShowConfig()
-        local show = Storage.GetSetting("showConfig")
-        config:SetShown(show)
-        stats:ClearAllPoints()
-        if show then
-            stats:SetPoint("TOPLEFT", config, "BOTTOMLEFT")
-            stats:SetPoint("TOPRIGHT", config, "BOTTOMRIGHT")
-        else
-            stats:SetPoint("TOPLEFT", 0, ACTIONS_BOTTOM)
-            stats:SetPoint("TOPRIGHT", 0, ACTIONS_BOTTOM)
-        end
-        UpdateHeight()
-    end
-    -- The toggles sit in a column to the right of the bait buttons
-    local showConfig = Panel.CreateSettingCheckbox(frame, 0, "Show config", "showConfig", ApplyShowConfig)
-    ApplyShowConfig()
+    -- The advanced lines change the panels' height
+    stats:AddHeadingCheckbox("Advanced", "showAdvancedStats", function()
+        stats.Refresh()
+        Layout()
+    end)
+    globalStats:AddHeadingCheckbox("Advanced", "globalShowLastSeen", function()
+        globalStats.Refresh()
+        Layout()
+    end)
+    history:AddHeadingCheckbox("Graph", "showHistoryGraph", function()
+        history.Refresh()
+        Layout()
+    end)
 
-    local function ApplyShowStats()
-        local show = Storage.GetSetting("showStats")
-        stats:SetShown(show)
-        history:SetShown(show)
-        UpdateHeight()
-    end
-    local showStats = Panel.CreateSettingCheckbox(frame, 0, "Show stats", "showStats", ApplyShowStats)
-    showStats:ClearAllPoints()
-    showStats:SetPoint("TOPLEFT", TOGGLES_LEFT, BAIT_TOP + 2)
+    -- To the right of the bait buttons: "Show config" above "Reset session", left-aligned
+    local resetSession = Panel.CreatePopupButton(frame, "Reset session", 90, "FISHYWASHY_RESET")
+    resetSession:SetPoint("TOPRIGHT", -10, BAIT_TOP - 20)
+    local showConfig = Panel.CreateSettingCheckbox(frame, 0, 0, "Show config", "showConfig", Layout)
     showConfig:ClearAllPoints()
-    showConfig:SetPoint("TOPLEFT", showStats, "BOTTOMLEFT")
-    ApplyShowStats()
+    showConfig:SetPoint("BOTTOMLEFT", resetSession, "TOPLEFT", 0, 2)
 
     -- Only show the frame while a fishing pole is equipped
     local function UpdateVisibility()
@@ -205,16 +222,16 @@ function UI.Init()
         frame:SetShown(Bait.HasFishingPole())
     end
 
-    Catches.OnChange(UpdateHeight)
+    Catches.OnChange(Layout)
     local events = CreateFrame("Frame")
     events:RegisterEvent("PLAYER_ENTERING_WORLD")
     events:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
     events:RegisterEvent("PLAYER_REGEN_ENABLED")
     events:SetScript("OnEvent", function()
-        UpdateHeight()
+        Layout()
         UpdateVisibility()
     end)
-    UpdateHeight()
+    Layout()
     UpdateVisibility()
 end
 

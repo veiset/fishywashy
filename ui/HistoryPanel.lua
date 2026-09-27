@@ -1,34 +1,28 @@
 local _, ns = ...
-local Config, Panel, Catches = ns.Config, ns.Panel, ns.Catches
+local Config, Panel, Storage, Catches, ActivityGraph = ns.Config, ns.Panel, ns.Storage, ns.Catches, ns.ActivityGraph
 
--- The most recent catches and unsuccessful casts.
+-- A graph of when you fish, then the most recent catches and unsuccessful casts.
 local HistoryPanel = {}
 ns.HistoryPanel = HistoryPanel
 
-local function FormatTimeSince(timestamp)
-    local seconds = time() - timestamp
-    if seconds < 60 then
-        return seconds .. "s ago"
-    elseif seconds < 3600 then
-        return math.floor(seconds / 60) .. "m ago"
-    else
-        return math.floor(seconds / 3600) .. "h ago"
-    end
-end
-
 function HistoryPanel.Create(parent)
     local panel = Panel.Create(parent, "History", "No fish caught yet")
+    local redrawGraph = ActivityGraph.Create(panel:AddHeaderContent(ActivityGraph.HEIGHT))
 
     function panel.Refresh()
+        local showGraph = Storage.GetSetting("showHistoryGraph")
+        panel:SetHeaderContentShown(showGraph)
+        panel:SetHeadingValue(showGraph and ActivityGraph.FormatBusiest() or "")
+        redrawGraph()
         panel:SetEntries(Catches.GetRecent(Config.RECENT_CATCHES), function(catch)
             if catch.missed then
-                return Panel.FormatMiss(), FormatTimeSince(catch.time)
+                return Panel.FormatMiss(), Panel.FormatTimeSince(catch.time)
             end
             local text = Panel.FormatItem(catch.icon, catch.link)
             if catch.quantity > 1 then
                 text = text .. " x" .. catch.quantity
             end
-            return text, FormatTimeSince(catch.time)
+            return text, Panel.FormatTimeSince(catch.time)
         end)
     end
 

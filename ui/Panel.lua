@@ -10,6 +10,8 @@ ns.Panel = Panel
 local ROW_HEIGHT = 16
 local HEADER_HEIGHT = 19
 local GAP = 6
+local EXTRA_WIDTH = 60
+local HEADING_LEFT = 12
 local MISSED_ICON = "Interface/Icons/Trade_Fishing"
 
 function Panel.CreateDivider(parent, y)
@@ -21,10 +23,10 @@ function Panel.CreateDivider(parent, y)
 end
 
 -- A small checkbox with a label, bound to a boolean setting. Returns the checkbox and label.
-function Panel.CreateSettingCheckbox(parent, top, text, settingKey, onChange)
+function Panel.CreateSettingCheckbox(parent, left, top, text, settingKey, onChange)
     local check = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     check:SetSize(18, 18)
-    check:SetPoint("TOPLEFT", 10, top)
+    check:SetPoint("TOPLEFT", left, top)
     local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     label:SetPoint("LEFT", check, "RIGHT", 2, 0)
     label:SetText(text)
@@ -33,9 +35,41 @@ function Panel.CreateSettingCheckbox(parent, top, text, settingKey, onChange)
     check:SetChecked(Storage.GetSetting(settingKey))
     check:SetScript("OnClick", function(self)
         Storage.SetSetting(settingKey, self:GetChecked())
-        onChange()
+        if onChange then onChange() end
     end)
     return check, label
+end
+
+-- A small button that asks for confirmation with the given StaticPopup
+function Panel.CreatePopupButton(parent, text, width, popup)
+    local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    button:SetSize(width, 18)
+    button:SetNormalFontObject("GameFontNormalSmall")
+    button:SetHighlightFontObject("GameFontHighlightSmall")
+    button:SetText(text)
+    button:SetScript("OnClick", function()
+        StaticPopup_Show(popup)
+    end)
+    return button
+end
+
+function Panel.FormatTimeSince(timestamp)
+    local seconds = time() - timestamp
+    if seconds < 60 then
+        return seconds .. "s ago"
+    elseif seconds < 3600 then
+        return math.floor(seconds / 60) .. "m ago"
+    elseif seconds < 86400 then
+        return math.floor(seconds / 3600) .. "h ago"
+    else
+        return math.floor(seconds / 86400) .. "d ago"
+    end
+end
+
+-- The catch rate and seconds-per-catch texts, from a Stats cast summary
+function Panel.FormatCastSummary(rate, caught, casts, average)
+    return rate and ("Catch rate: %.0f%% (%d/%d)"):format(rate, caught, casts) or "Catch rate: -",
+        average and ("%.1fs per catch"):format(average) or "- per catch"
 end
 
 function Panel.FormatItem(icon, link)
@@ -56,17 +90,48 @@ local function GetRow(self, i)
     local row = self.rows[i]
     if not row then
         local y = -(i - 1) * ROW_HEIGHT
+        -- Optional fixed-width column at the far right, so the value column stays aligned
+        local extra = self:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+        extra:SetPoint("TOPRIGHT", self.body, "TOPRIGHT", -10, y)
+        extra:SetWidth(EXTRA_WIDTH)
+        extra:SetJustifyH("RIGHT")
+        extra:SetWordWrap(false)
         local value = self:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        value:SetPoint("TOPRIGHT", self.body, "TOPRIGHT", -10, y)
         local item = self:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         item:SetPoint("TOPLEFT", self.body, "TOPLEFT", 12, y)
         item:SetPoint("RIGHT", value, "LEFT", -6, 0)
         item:SetJustifyH("LEFT")
         item:SetWordWrap(false)
-        row = { item = item, value = value }
+
+        -- Shows the panel's tooltip for the row's entry; only takes the mouse when there is one
+        local hover = CreateFrame("Frame", nil, self)
+        hover:SetPoint("TOPLEFT", self.body, "TOPLEFT", 6, y)
+        hover:SetPoint("TOPRIGHT", self.body, "TOPRIGHT", -6, y)
+        hover:SetHeight(ROW_HEIGHT)
+        hover:EnableMouse(false)
+        hover:SetScript("OnEnter", function()
+            GameTooltip:SetOwner(hover, "ANCHOR_RIGHT")
+            self.tooltip(hover.entry)
+            GameTooltip:Show()
+        end)
+        hover:SetScript("OnLeave", GameTooltip_Hide)
+
+        row = { item = item, value = value, extra = extra, hover = hover, y = y }
         self.rows[i] = row
     end
     return row
+end
+
+-- A setting checkbox right after the heading
+function PanelMethods:AddHeadingCheckbox(text, settingKey, onChange)
+    local check = Panel.CreateSettingCheckbox(self, 0, 0, text, settingKey, onChange)
+    check:ClearAllPoints()
+    check:SetPoint("LEFT", self.heading, "RIGHT", 6, 0)
+end
+
+-- Gives the value column a fixed width with left-aligned text, instead of fitting its text
+function PanelMethods:SetValueWidth(width)
+    self.valueWidth = width
 end
 
 function PanelMethods:SetHeadingValue(text)
@@ -79,28 +144,68 @@ function PanelMethods:SetSubheading(i, left, right)
     self.subheadings[i].right:SetText(right)
 end
 
+-- Reserves space under the heading and subheadings for custom content, such as a graph.
+-- Returns a frame that fills the space.
+function PanelMethods:AddHeaderContent(height)
+    self.content = CreateFrame("Frame", nil, self)
+    self.content:SetHeight(height)
+    self:SetSubheadingsShown(self.subheadingsShown)
+    return self.content
+end
+
+function PanelMethods:SetHeaderContentShown(shown)
+    self.content:SetShown(shown)
+    self:SetSubheadingsShown(self.subheadingsShown)
+end
+
 function PanelMethods:SetSubheadingsShown(shown)
+    self.subheadingsShown = shown
     for _, subheading in ipairs(self.subheadings) do
         subheading.left:SetShown(shown)
         subheading.right:SetShown(shown)
     end
     self.headerHeight = HEADER_HEIGHT + (shown and #self.subheadings * ROW_HEIGHT or 0)
+    if self.content and self.content:IsShown() then
+        self.content:SetPoint("TOPLEFT", 0, -self.headerHeight)
+        self.content:SetPoint("TOPRIGHT", 0, -self.headerHeight)
+        self.headerHeight = self.headerHeight + self.content:GetHeight()
+    end
     self.body:SetPoint("TOPLEFT", 0, -self.headerHeight)
     self.body:SetPoint("TOPRIGHT", 0, -self.headerHeight)
     UpdateHeight(self)
 end
 
--- Fills the panel with one row per entry; format(entry) returns the item and value text
-function PanelMethods:SetEntries(entries, format)
+-- Fills the panel with one row per entry. format(entry) returns the item and value text, and
+-- optionally text for an extra column to the right of the value. The optional tooltip(entry)
+-- fills GameTooltip when a row is hovered.
+function PanelMethods:SetEntries(entries, format, tooltip)
+    self.tooltip = tooltip
+    local texts, hasExtra = {}, false
     for i, entry in ipairs(entries) do
+        texts[i] = { format(entry) }
+        hasExtra = hasExtra or texts[i][3] ~= nil
+    end
+    -- The value sits at the right edge, or left of the extra column when there is one
+    local valueRight = hasExtra and -(10 + EXTRA_WIDTH + 6) or -10
+    for i, text in ipairs(texts) do
         local row = GetRow(self, i)
-        local itemText, valueText = format(entry)
-        row.item:SetText(itemText)
-        row.value:SetText(valueText)
+        row.value:SetPoint("TOPRIGHT", self.body, "TOPRIGHT", valueRight, row.y)
+        if self.valueWidth then
+            row.value:SetWidth(self.valueWidth)
+            row.value:SetJustifyH("LEFT")
+            row.value:SetWordWrap(false)
+        end
+        row.item:SetText(text[1])
+        row.value:SetText(text[2])
+        row.extra:SetText(text[3] or "")
+        row.hover.entry = entries[i]
+        row.hover:EnableMouse(tooltip ~= nil)
     end
     for i = #entries + 1, #self.rows do
         self.rows[i].item:SetText("")
         self.rows[i].value:SetText("")
+        self.rows[i].extra:SetText("")
+        self.rows[i].hover:EnableMouse(false)
     end
     self.empty:SetShown(#entries == 0)
     self.rowCount = #entries
@@ -114,9 +219,9 @@ function Panel.Create(parent, title, emptyMessage, subheadingCount)
     end
     Panel.CreateDivider(panel, 0)
 
-    local heading = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    heading:SetPoint("TOPLEFT", 12, -5)
-    heading:SetText(title)
+    panel.heading = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    panel.heading:SetPoint("TOPLEFT", HEADING_LEFT, -5)
+    panel.heading:SetText(title)
     panel.headingValue = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     panel.headingValue:SetPoint("TOPRIGHT", -10, -5)
 

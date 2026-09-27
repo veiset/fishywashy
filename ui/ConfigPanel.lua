@@ -1,17 +1,18 @@
 local _, ns = ...
 local Panel, Storage, Sound, Catches = ns.Panel, ns.Storage, ns.Sound, ns.Catches
 
--- The settings checkboxes, the volume slider and the reset button.
+-- The settings checkboxes, the volume slider and the reset-all button.
 local ConfigPanel = {}
 ns.ConfigPanel = ConfigPanel
 
-local HEIGHT = 105
+local HEIGHT = 213
+local LEFT = 10
 
-StaticPopupDialogs["FISHYWASHY_RESET"] = {
-    text = "Reset the session? This clears all FishyWashy stats and history.",
+StaticPopupDialogs["FISHYWASHY_RESET_ALL"] = {
+    text = "Delete ALL FishyWashy data, including global stats, zones and history? This can't be undone.",
     button1 = YES,
     button2 = NO,
-    OnAccept = function() Catches.Reset() end,
+    OnAccept = function() Catches.ResetAll() end,
     timeout = 0,
     whileDead = true,
     hideOnEscape = true,
@@ -52,8 +53,8 @@ local function CreateVolumeSlider(parent, anchor)
     end)
 end
 
--- onLayoutChange is called when a setting changes the stats panel's height
-function ConfigPanel.Create(parent, stats, onLayoutChange)
+-- onLayoutChange is called when a setting changes which panels show or how tall they are
+function ConfigPanel.Create(parent, stats, globalStats, onLayoutChange)
     local panel = CreateFrame("Frame", nil, parent)
     panel:SetHeight(HEIGHT)
     Panel.CreateDivider(panel, 0)
@@ -62,37 +63,31 @@ function ConfigPanel.Create(parent, stats, onLayoutChange)
     heading:SetPoint("TOPLEFT", 12, -5)
     heading:SetText("Config")
 
-    local _, volumeLabel = Panel.CreateSettingCheckbox(panel, -19, "Fishing volume", "enabled", function()
+    local _, volumeLabel = Panel.CreateSettingCheckbox(panel, LEFT, -19, "Fishing volume", "enabled", function()
         if not Storage.GetSetting("enabled") then
             Sound.Restore()
         end
     end)
     CreateVolumeSlider(panel, volumeLabel)
+    -- Takes effect from the next cast
+    Panel.CreateSettingCheckbox(panel, LEFT, -39, "Sound while alt-tabbed", "soundInBackground")
+    Panel.CreateSettingCheckbox(panel, LEFT, -59, "Double right-click to cast", "rightClickCast")
 
-    local function ApplyAdvancedStats()
-        stats:SetSubheadingsShown(Storage.GetSetting("showAdvancedStats"))
-    end
-    ApplyAdvancedStats()
-    Panel.CreateSettingCheckbox(panel, -39, "Show advanced stats", "showAdvancedStats", function()
-        ApplyAdvancedStats()
-        onLayoutChange()
-    end)
-
-    Panel.CreateSettingCheckbox(panel, -59, "Include unsuccessful in stats", "statsIncludeMissed", function()
+    Panel.CreateSettingCheckbox(panel, LEFT, -79, "Include unsuccessful in stats", "statsIncludeMissed", function()
         -- The unsuccessful row changes the stats' height
         stats.Refresh()
+        globalStats.Refresh()
         onLayoutChange()
     end)
 
-    local reset = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    reset:SetSize(90, 18)
-    reset:SetPoint("TOPLEFT", 12, -81)
-    reset:SetNormalFontObject("GameFontNormalSmall")
-    reset:SetHighlightFontObject("GameFontHighlightSmall")
-    reset:SetText("Reset session")
-    reset:SetScript("OnClick", function()
-        StaticPopup_Show("FISHYWASHY_RESET")
-    end)
+    -- Which panels to show, set a little apart from the other options
+    Panel.CreateSettingCheckbox(panel, LEFT, -107, "Show stats", "showStats", onLayoutChange)
+    Panel.CreateSettingCheckbox(panel, LEFT, -127, "Show global stats", "showGlobalStats", onLayoutChange)
+    Panel.CreateSettingCheckbox(panel, LEFT, -147, "Show zones", "showZones", onLayoutChange)
+    Panel.CreateSettingCheckbox(panel, LEFT, -167, "Show history", "showHistory", onLayoutChange)
+
+    local resetAll = Panel.CreatePopupButton(panel, "Reset all data", 100, "FISHYWASHY_RESET_ALL")
+    resetAll:SetPoint("TOPLEFT", 12, -189)
 
     return panel
 end

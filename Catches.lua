@@ -7,6 +7,8 @@ ns.Catches = Catches
 
 local GetSpellName = (C_Spell and C_Spell.GetSpellName) or GetSpellInfo
 local FISHING = GetSpellName(7620)
+-- The Fishing spell's name, in the client's language
+Catches.FISHING = FISHING
 
 local listeners = {}
 -- The cast in progress: { time, startedAt, stoppedAt }
@@ -26,9 +28,15 @@ local function NotifyChange()
     end
 end
 
--- Forget every catch and cast, which also resets the stats
+-- Forget every catch and cast this session, which also resets the stats
 function Catches.Reset()
     Storage.ClearCatches()
+    NotifyChange()
+end
+
+-- Forget everything, including the all-time stats
+function Catches.ResetAll()
+    Storage.ClearAll()
     NotifyChange()
 end
 
@@ -107,6 +115,7 @@ local function RecordLoot()
                 quantity = quantity,
                 time = time(),
                 zone = GetRealZoneText(),
+                subzone = GetSubZoneText(),
             })
         end
     end

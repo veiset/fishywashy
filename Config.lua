@@ -29,5 +29,8 @@ Config.LOOT_GRACE = 1
 -- isn't counted as unsuccessful
 Config.RECAST_WINDOW = 0.3
 
+-- Seconds between two right-clicks for them to count as a double-click that casts Fishing
+Config.DOUBLE_CLICK_TIME = 0.4
+
 -- Number of rows in the History panel
 Config.RECENT_CATCHES = 5

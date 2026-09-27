@@ -11,6 +11,8 @@ local FIXED_CVARS = {
     Sound_MusicVolume = "0",
     Sound_AmbienceVolume = "0",
 }
+-- Keeps sound playing while alt-tabbed, when the soundInBackground setting is on
+local BACKGROUND_CVAR = "Sound_EnableSoundWhenGameIsInBG"
 
 function Sound.IsBoosted()
     return Storage.GetSoundBackup() ~= nil
@@ -33,6 +35,10 @@ function Sound.Boost()
     for cvar, value in pairs(FIXED_CVARS) do
         backup[cvar] = GetCVar(cvar)
         SetCVar(cvar, value)
+    end
+    if Storage.GetSetting("soundInBackground") then
+        backup[BACKGROUND_CVAR] = GetCVar(BACKGROUND_CVAR)
+        SetCVar(BACKGROUND_CVAR, "1")
     end
     Storage.SetSoundBackup(backup)
     Sound.UpdateVolume()
