@@ -62,7 +62,7 @@ end
 function Panel.CreateCloseButton(parent, onClick)
     local close = CreateFrame("Button", nil, parent, "BackdropTemplate")
     close:SetSize(16, 16)
-    close:SetPoint("TOPRIGHT", -2, -5)
+    close:SetPoint("TOPRIGHT", -4, -5)
     close:SetBackdrop({
         bgFile = "Interface/Tooltips/UI-Tooltip-Background",
         edgeFile = "Interface/Tooltips/UI-Tooltip-Border",

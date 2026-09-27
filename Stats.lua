@@ -53,21 +53,32 @@ function Stats.GetSummary(includeMissed)
 end
 
 -- All-time count and share of each item, most caught first, and the all-time total. With
--- includeMissed, unsuccessful casts are counted as an entry { missed = true } too. With a
--- zone, only items caught there are counted; unsuccessful casts aren't known per zone.
-function Stats.GetGlobalSummary(includeMissed, zone)
+-- includeMissed, unsuccessful casts are counted as an entry { missed = true } too.
+function Stats.GetGlobalSummary(includeMissed)
     local total, entries = 0, {}
-    local items = zone and Storage.GetGlobalZoneItems(zone) or Storage.GetGlobalItems()
-    for itemID, item in pairs(items) do
+    for itemID, item in pairs(Storage.GetGlobalItems()) do
         table.insert(entries, {
             itemID = itemID, link = item.link, icon = item.icon, count = item.count, lastSeen = item.lastSeen,
         })
         total = total + item.count
     end
     local _, missed = Storage.GetGlobalCasts()
-    if includeMissed and not zone and missed > 0 then
+    if includeMissed and missed > 0 then
         table.insert(entries, { missed = true, count = missed })
         total = total + missed
+    end
+    AddShares(entries, total)
+    return total, entries
+end
+
+-- Each bait used, how often and its share of all baits used, most used first, and the total
+function Stats.GetBaitSummary()
+    local total, entries = 0, {}
+    for itemID, bait in pairs(Storage.GetGlobalBaitUsed()) do
+        table.insert(entries, {
+            itemID = itemID, link = bait.link, icon = bait.icon, count = bait.count, lastSeen = bait.lastSeen,
+        })
+        total = total + bait.count
     end
     AddShares(entries, total)
     return total, entries

@@ -5,7 +5,7 @@ local Panel, Storage, Sound, Catches = ns.Panel, ns.Storage, ns.Sound, ns.Catche
 local ConfigPanel = {}
 ns.ConfigPanel = ConfigPanel
 
-local HEIGHT = 213
+local HEIGHT = 193
 local LEFT = 10
 
 StaticPopupDialogs["FISHYWASHY_RESET_ALL"] = {
@@ -62,7 +62,7 @@ local function CreateVolumeSlider(parent, top)
 end
 
 -- onLayoutChange is called when a setting changes which panels show or how tall they are
-function ConfigPanel.Create(parent, stats, globalStats, onLayoutChange)
+function ConfigPanel.Create(parent, stats, onLayoutChange)
     local panel = CreateFrame("Frame", nil, parent)
     panel:SetHeight(HEIGHT)
     Panel.CreateDivider(panel, 0)
@@ -86,18 +86,16 @@ function ConfigPanel.Create(parent, stats, globalStats, onLayoutChange)
     Panel.CreateSettingCheckbox(panel, LEFT, -79, "Include unsuccessful in stats", "statsIncludeMissed", function()
         -- The unsuccessful row changes the stats' height
         stats.Refresh()
-        globalStats.Refresh()
         onLayoutChange()
     end)
 
     -- Which panels to show, set a little apart from the other options
     Panel.CreateSettingCheckbox(panel, LEFT, -107, "Show stats", "showStats", onLayoutChange)
-    Panel.CreateSettingCheckbox(panel, LEFT, -127, "Show global stats", "showGlobalStats", onLayoutChange)
-    Panel.CreateSettingCheckbox(panel, LEFT, -147, "Show zones", "showZones", onLayoutChange)
-    Panel.CreateSettingCheckbox(panel, LEFT, -167, "Show history", "showHistory", onLayoutChange)
+    Panel.CreateSettingCheckbox(panel, LEFT, -127, "Show zones", "showZones", onLayoutChange)
+    Panel.CreateSettingCheckbox(panel, LEFT, -147, "Show history", "showHistory", onLayoutChange)
 
     local resetAll = Panel.CreatePopupButton(panel, "Reset all data", 100, "FISHYWASHY_RESET_ALL")
-    resetAll:SetPoint("TOPLEFT", 12, -189)
+    resetAll:SetPoint("TOPLEFT", 12, -169)
 
     return panel
 end

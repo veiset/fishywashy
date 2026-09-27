@@ -1,7 +1,7 @@
 local _, ns = ...
 local Config, Storage, Bait, Catches = ns.Config, ns.Storage, ns.Bait, ns.Catches
 local Panel, ConfigPanel, StatsPanel, HistoryPanel = ns.Panel, ns.ConfigPanel, ns.StatsPanel, ns.HistoryPanel
-local GlobalStatsPanel, ZonesPanel, DetailsWindow = ns.GlobalStatsPanel, ns.ZonesPanel, ns.DetailsWindow
+local ZonesPanel, DetailsWindow = ns.ZonesPanel, ns.DetailsWindow
 
 local UI = {}
 ns.UI = UI
@@ -133,6 +133,10 @@ local function CreateBaitButton(parent, itemID)
         GameTooltip:Show()
     end)
     button:SetScript("OnLeave", GameTooltip_Hide)
+    -- Counted once the bait actually leaves the bags
+    button:HookScript("PostClick", function()
+        Bait.WatchForUse(itemID)
+    end)
     button:Hide()
     return button
 end
@@ -191,7 +195,6 @@ function UI.Init()
     CreateBaitButtons(frame)
 
     local stats = StatsPanel.Create(frame)
-    local globalStats = GlobalStatsPanel.Create(frame)
     local zones = ZonesPanel.Create(frame)
     local history = HistoryPanel.Create(frame)
     local config
@@ -201,13 +204,12 @@ function UI.Init()
     local function Layout()
         config:SetShown(Storage.GetSetting("showConfig"))
         stats:SetShown(Storage.GetSetting("showStats"))
-        globalStats:SetShown(Storage.GetSetting("showGlobalStats"))
         zones:SetShown(Storage.GetSetting("showZones"))
         history:SetShown(Storage.GetSetting("showHistory"))
 
         local height = -ACTIONS_BOTTOM + 2
         local previous
-        for _, panel in ipairs({ config, stats, globalStats, zones, history }) do
+        for _, panel in ipairs({ config, stats, zones, history }) do
             if panel:IsShown() then
                 panel:ClearAllPoints()
                 if previous then
@@ -229,7 +231,7 @@ function UI.Init()
         frame:SetHeight(height)
     end
 
-    config = ConfigPanel.Create(frame, stats, globalStats, Layout)
+    config = ConfigPanel.Create(frame, stats, Layout)
 
     -- Keep the frame fitted to its panels whatever changed their height, such as rows added
     -- while the frame was hidden; at most once per screen refresh
@@ -242,7 +244,7 @@ function UI.Init()
             Layout()
         end)
     end
-    for _, panel in ipairs({ config, stats, globalStats, zones, history }) do
+    for _, panel in ipairs({ config, stats, zones, history }) do
         panel:HookScript("OnSizeChanged", QueueLayout)
     end
     frame:HookScript("OnShow", QueueLayout)
@@ -250,10 +252,6 @@ function UI.Init()
     -- The advanced lines change the panels' height
     stats:AddHeadingCheckbox("Advanced", "showAdvancedStats", function()
         stats.Refresh()
-        Layout()
-    end)
-    globalStats:AddHeadingCheckbox("Current zone", "globalCurrentZone", function()
-        globalStats.Refresh()
         Layout()
     end)
     history:AddHeadingCheckbox("Graph", "showHistoryGraph", function()

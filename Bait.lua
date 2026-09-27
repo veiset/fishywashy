@@ -1,4 +1,5 @@
 local _, ns = ...
+local Storage = ns.Storage
 
 -- Bait (fishing lures) is applied as a temporary enchant on the fishing pole.
 local Bait = {}
@@ -18,6 +19,37 @@ end
 -- Macro that uses the bait and applies it to the main hand (the fishing pole)
 function Bait.GetApplyMacro(itemID)
     return "/use item:" .. itemID .. "\n/use " .. MAIN_HAND_SLOT
+end
+
+local GetItemInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+local GetItemIcon = (C_Item and C_Item.GetItemIconByID) or GetItemIcon
+
+-- How long to wait, after a bait button is clicked, for the bait to leave the bags
+local USE_TIMEOUT = 10
+local CHECK_INTERVAL = 0.5
+
+-- Baits whose button was clicked and that are waiting to be used up
+local watching = {}
+
+-- Called when a bait's button is clicked: counts the bait as used once one actually leaves
+-- the bags, so extra clicks, failed casts and refused replacements don't count
+function Bait.WatchForUse(itemID)
+    if watching[itemID] then return end
+    watching[itemID] = true
+    local before = GetItemCount(itemID)
+    local checks = 0
+    local ticker
+    ticker = C_Timer.NewTicker(CHECK_INTERVAL, function()
+        checks = checks + 1
+        if GetItemCount(itemID) < before then
+            local _, link = GetItemInfo(itemID)
+            Storage.AddBaitUsed(itemID, link, GetItemIcon(itemID))
+        elseif checks < USE_TIMEOUT / CHECK_INTERVAL then
+            return
+        end
+        watching[itemID] = nil
+        ticker:Cancel()
+    end)
 end
 
 function Bait.HasFishingPole()

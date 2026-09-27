@@ -19,6 +19,12 @@ Hover the fishing skill to see where it comes from: rank, bait, fishing pole and
 
 ![Fishing skill breakdown](docs/skill.png)
 
+## Global stats
+
+The Global stats button opens all-time stats: bait used, everything caught grouped into fish, treasure and junk, and a loot table for each zone and area.
+
+![Global stats window](docs/global.png)
+
 ## Configurable
 
 Show only the panels you want, turn on advanced stats, and tune the sound.

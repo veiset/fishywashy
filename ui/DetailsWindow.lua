@@ -11,6 +11,8 @@ local HEIGHT = 480
 local SCROLLBAR_WIDTH = 26
 -- Pixels per mouse wheel notch: two rows
 local SCROLL_STEP = 32
+-- Seconds between refreshes while the window is open
+local REFRESH_INTERVAL = 2
 
 local CATEGORIES = {
     { key = "fish", title = "Fish" },
@@ -19,8 +21,10 @@ local CATEGORIES = {
 }
 
 local window
-local summary, zones
+local summary, bait, zones
 local sections = {}
+-- The question-mark icon, for items the game hasn't loaded yet
+local UNKNOWN_ICON = 134400
 
 local function FormatCount(count, percent)
     return ("%d (%.0f%%)"):format(count, percent)
@@ -43,7 +47,7 @@ end
 local function Layout(content)
     local height = 0
     local previous
-    local panels = { summary }
+    local panels = { summary, bait }
     for _, category in ipairs(CATEGORIES) do
         table.insert(panels, sections[category.key])
     end
@@ -90,6 +94,17 @@ local function Refresh()
         ("Unsuccessful casts: %d"):format(unsuccessful))
     summary:SetEntries(total > 0 and rows or {}, function(row)
         return row.name, FormatCount(row.count, row.count / total * 100)
+    end)
+
+    -- Baits applied with the bait buttons
+    local baitTotal, baits = Stats.GetBaitSummary()
+    bait:SetHeadingValue(baitTotal .. " used")
+    bait:SetEntries(baits, function(entry)
+        local lastUsed = entry.lastSeen and Panel.FormatTimeSince(entry.lastSeen) or ""
+        local name = Panel.FormatItem(entry.icon or UNKNOWN_ICON, entry.link or ("Item " .. entry.itemID))
+        return name, lastUsed, FormatCount(entry.count, entry.percent)
+    end, function(entry)
+        GameTooltip:SetItemByID(entry.itemID)
     end)
 
     for _, category in ipairs(CATEGORIES) do
@@ -169,6 +184,8 @@ local function Create()
     end)
 
     summary = Panel.Create(content, "All-time", "No fish caught yet", 2)
+    bait = Panel.Create(content, "Bait used", "No bait used from the bait buttons yet")
+    bait:SetStriped(true)
     for _, category in ipairs(CATEGORIES) do
         sections[category.key] = Panel.Create(content, category.title, "None yet")
     end
@@ -181,6 +198,10 @@ local function Create()
 
     window:SetScript("OnShow", Refresh)
     Catches.OnChange(function()
+        if window:IsShown() then Refresh() end
+    end)
+    -- Also every few seconds while open, for bait uses and the "time ago" labels
+    C_Timer.NewTicker(REFRESH_INTERVAL, function()
         if window:IsShown() then Refresh() end
     end)
 end

@@ -18,7 +18,6 @@ ui\ConfigPanel.lua
 ui\ActivityGraph.lua
 ui\StatsPanel.lua
 ui\HistoryPanel.lua
-ui\GlobalStatsPanel.lua
 ui\ZonesPanel.lua
 ui\DetailsWindow.lua
 UI.lua

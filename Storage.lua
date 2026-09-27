@@ -15,11 +15,9 @@ local DEFAULTS = {
     statsIncludeMissed = false,
     showAdvancedStats = false,
     showConfig = true,
-    showGlobalStats = true,
-    showZones = true,
+    showZones = false,
     showHistory = true,
     showHistoryGraph = false,
-    globalCurrentZone = false,
 }
 
 local db
@@ -27,8 +25,8 @@ local db
 -- All-time totals, kept through session resets:
 --   globalItems        { [itemID] = { link, icon, count, lastSeen } }
 --   globalZones        { [zone] = { count, subzones = { [subzone] = count } } }, items caught there
---   globalZoneItems    { [zone] = { [itemID] = { link, icon, count, lastSeen } } }
 --   globalAreaItems    { [zone] = { [subzone] = { [itemID] = { link, icon, count, lastSeen } } } }
+--   globalBaitUsed     { [itemID] = { link, icon, count, lastSeen } }, baits applied from the window
 --   globalHours        { [hour + 1] = casts started in that hour of the day, local time }
 --   globalCaughtCasts, globalUnsuccessful, globalCatchSeconds
 --   globalSessions     sessions started, counting the current one
@@ -39,20 +37,14 @@ local function AddItemTo(items, catch)
         item = { count = 0 }
         items[catch.itemID] = item
     end
-    item.link = catch.link
-    item.icon = catch.icon
+    item.link = catch.link or item.link
+    item.icon = catch.icon or item.icon
     item.count = item.count + catch.quantity
     item.lastSeen = catch.time
 end
 
 local function AddItemToGlobal(catch)
     AddItemTo(db.globalItems, catch)
-end
-
-local function AddZoneItemToGlobal(catch)
-    if not catch.zone then return end
-    db.globalZoneItems[catch.zone] = db.globalZoneItems[catch.zone] or {}
-    AddItemTo(db.globalZoneItems[catch.zone], catch)
 end
 
 local function AddAreaItemToGlobal(catch)
@@ -113,7 +105,6 @@ function Storage.Init()
 
     InitGlobal("globalItems", {}, db.catches, AddItemToGlobal)
     InitGlobal("globalZones", {}, db.catches, AddZoneToGlobal)
-    InitGlobal("globalZoneItems", {}, db.catches, AddZoneItemToGlobal)
     InitGlobal("globalAreaItems", {}, db.catches, AddAreaItemToGlobal)
     -- Older saved data kept only a count per zone
     for name, zone in pairs(db.globalZones) do
@@ -129,8 +120,11 @@ function Storage.Init()
         end
     end
     db.globalSessions = db.globalSessions or 1
-    -- Left over from a temporary debug command
+    db.globalBaitUsed = db.globalBaitUsed or {}
+    -- Left over from removed features
     db.skillDebug = nil
+    db.globalZoneItems = nil
+    db.globalBait = nil
 end
 
 function Storage.GetSetting(key)
@@ -160,7 +154,6 @@ function Storage.AddCatch(catch)
     table.insert(db.catches, catch)
     AddItemToGlobal(catch)
     AddZoneToGlobal(catch)
-    AddZoneItemToGlobal(catch)
     AddAreaItemToGlobal(catch)
 end
 
@@ -207,9 +200,13 @@ function Storage.GetGlobalZones()
     return db.globalZones
 end
 
--- All-time totals per item for one zone, or an empty table if nothing was caught there
-function Storage.GetGlobalZoneItems(zone)
-    return db.globalZoneItems[zone] or {}
+-- Counts one use of a bait; link and icon may be nil if the item isn't cached yet
+function Storage.AddBaitUsed(itemID, link, icon)
+    AddItemTo(db.globalBaitUsed, { itemID = itemID, link = link, icon = icon, quantity = 1, time = time() })
+end
+
+function Storage.GetGlobalBaitUsed()
+    return db.globalBaitUsed
 end
 
 -- All-time totals per item for one area of a zone, or an empty table
