@@ -19,6 +19,12 @@ end)
 
 local lastClick = 0
 
+local function ClearBinding()
+    if not InCombatLockdown() then
+        ClearOverrideBindings(button)
+    end
+end
+
 WorldFrame:HookScript("OnMouseDown", function(_, mouseButton)
     if mouseButton ~= "RightButton" then return end
     -- Bindings can't be changed in combat; right-clicking a unit should still target or loot it
@@ -26,18 +32,30 @@ WorldFrame:HookScript("OnMouseDown", function(_, mouseButton)
         or not Bait.HasFishingPole() then
         return
     end
+    -- While the line is out, right-clicks on the bobber are for looting it: the game is
+    -- showing its tooltip, anchored to the screen rather than to a UI frame. Once the cast
+    -- has ended the fading tooltip no longer matters.
+    if UnitChannelInfo("player") == Catches.FISHING
+        and GameTooltip:IsShown() and GameTooltip:GetOwner() == UIParent then
+        lastClick = 0
+        return
+    end
     local now = GetTime()
     if now - lastClick < Config.DOUBLE_CLICK_TIME then
         lastClick = 0
         SetOverrideBindingClick(button, true, "BUTTON2", "FishyWashyCastButton")
+        -- Normally used up by this click; never leave it behind for a later right-click
+        C_Timer.After(Config.DOUBLE_CLICK_TIME, ClearBinding)
     else
         lastClick = now
     end
 end)
 
--- Don't leave the binding behind if combat starts before it was used
+-- Don't leave the binding behind if combat starts or a loading screen comes before it was used
 local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_REGEN_DISABLED")
+events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:SetScript("OnEvent", function()
-    ClearOverrideBindings(button)
+    ClearBinding()
+    lastClick = 0
 end)

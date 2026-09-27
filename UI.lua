@@ -206,6 +206,22 @@ function UI.Init()
 
     config = ConfigPanel.Create(frame, stats, globalStats, Layout)
 
+    -- Keep the frame fitted to its panels whatever changed their height, such as rows added
+    -- while the frame was hidden; at most once per screen refresh
+    local layoutQueued = false
+    local function QueueLayout()
+        if layoutQueued then return end
+        layoutQueued = true
+        C_Timer.After(0, function()
+            layoutQueued = false
+            Layout()
+        end)
+    end
+    for _, panel in ipairs({ config, stats, globalStats, zones, history }) do
+        panel:HookScript("OnSizeChanged", QueueLayout)
+    end
+    frame:HookScript("OnShow", QueueLayout)
+
     -- The advanced lines change the panels' height
     stats:AddHeadingCheckbox("Advanced", "showAdvancedStats", function()
         stats.Refresh()
