@@ -57,7 +57,7 @@ end
 local function CreateBaitStatus(parent)
     local text = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     -- A fixed start, so the ticking bait timer only changes the end of the text
-    text:SetPoint("TOPLEFT", 131, -8)
+    text:SetPoint("TOPLEFT", 111, -8)
     text:SetJustifyH("LEFT")
 
     local function Update()
@@ -72,9 +72,15 @@ local function CreateBaitStatus(parent)
         else
             bait = "Bait: |cffff4040none|r"
         end
-        -- The skill in the blue the game uses for skill messages
-        local skill = Bait.GetFishingSkill()
-        text:SetText(skill and ("Fishing |cff5555ff%d|r   %s"):format(skill, bait) or bait)
+        -- "Fishing 225 (+95)": the rank in light blue, then the gear and bait bonus in the same
+        -- green as "applied"
+        local rank, bonus = Bait.GetFishingSkill()
+        if rank then
+            local bonusText = bonus > 0 and (" (|cff40ff40+%d|r)"):format(bonus) or ""
+            text:SetText(("Fishing |cff7777ff%d|r%s   %s"):format(rank, bonusText, bait))
+        else
+            text:SetText(bait)
+        end
     end
 
     Update()
