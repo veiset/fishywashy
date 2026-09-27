@@ -283,7 +283,18 @@ function UI.Init()
     events:RegisterEvent("PLAYER_ENTERING_WORLD")
     events:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
     events:RegisterEvent("PLAYER_REGEN_ENABLED")
+    -- Fires once the equipment is known again, e.g. after a loading screen
+    events:RegisterUnitEvent("UNIT_INVENTORY_CHANGED", "player")
     events:SetScript("OnEvent", function(_, event, slot)
+        if event == "PLAYER_ENTERING_WORLD" then
+            -- Right after a loading screen (boats, hearthstone) the main hand can look empty
+            -- for a moment, so check again once it has settled instead of hiding now
+            C_Timer.After(1, function()
+                Layout()
+                UpdateVisibility()
+            end)
+            return
+        end
         -- Equipping a fishing pole opens the frame again after it was closed
         if event == "PLAYER_EQUIPMENT_CHANGED" and slot == MAIN_HAND_SLOT and Bait.HasFishingPole() then
             closed = false
