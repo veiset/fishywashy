@@ -9,6 +9,14 @@ ns.UI = UI
 local frame
 -- Closed with the X or /fishy; stays hidden until a fishing pole is equipped or /fishy is used
 local closed = false
+-- Whether the frame should be shown; applied now, or when combat ends
+local wanted = false
+
+-- The frame holds secure buttons, so it can't be shown or hidden in combat
+local function ApplyVisibility()
+    if InCombatLockdown() then return end
+    frame:SetShown(wanted)
+end
 
 local WIDTH = 340
 local MAIN_HAND_SLOT = 16
@@ -271,13 +279,17 @@ function UI.Init()
     Panel.CreateCloseButton(frame, function()
         if InCombatLockdown() then return end
         closed = true
-        frame:Hide()
+        wanted = false
+        ApplyVisibility()
     end)
 
-    -- Only show the frame while a fishing pole is equipped and it hasn't been closed
-    local function UpdateVisibility()
-        if InCombatLockdown() then return end
-        frame:SetShown(Bait.HasFishingPole() and not closed)
+    -- Opens the frame when a fishing pole is equipped, unless it was closed. Never hides it,
+    -- so a frame opened with /fishy stays open after combat or a loading screen.
+    local function ShowIfFishing()
+        if Bait.HasFishingPole() and not closed then
+            wanted = true
+        end
+        ApplyVisibility()
     end
 
     Catches.OnChange(Layout)
@@ -293,23 +305,31 @@ function UI.Init()
             -- for a moment, so check again once it has settled instead of hiding now
             C_Timer.After(1, function()
                 Layout()
-                UpdateVisibility()
+                ShowIfFishing()
             end)
             return
         end
-        -- Equipping a fishing pole opens the frame again after it was closed
-        if event == "PLAYER_EQUIPMENT_CHANGED" and slot == MAIN_HAND_SLOT and Bait.HasFishingPole() then
+        if event == "PLAYER_EQUIPMENT_CHANGED" and slot == MAIN_HAND_SLOT then
+            -- Only changing the main hand opens or hides the frame: equipping a fishing pole
+            -- opens it, even after it was closed, and unequipping it hides it
+            wanted = Bait.HasFishingPole()
             closed = false
+        elseif event == "PLAYER_REGEN_ENABLED" then
+            -- Apply anything that was blocked during combat
+            Layout()
+            ApplyVisibility()
+            return
         end
         Layout()
-        UpdateVisibility()
+        ShowIfFishing()
     end)
     Layout()
-    UpdateVisibility()
+    ShowIfFishing()
 end
 
 function UI.Toggle()
     if InCombatLockdown() then return end
-    closed = frame:IsShown()
-    frame:SetShown(not closed)
+    wanted = not frame:IsShown()
+    closed = not wanted
+    ApplyVisibility()
 end

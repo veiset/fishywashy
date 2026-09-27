@@ -100,8 +100,7 @@ local function GetRodBonus()
 end
 
 -- Bonuses from buffs such as food, from tooltips like "Your Fishing Skill is increased by 8."
-local function GetBuffBonus()
-    if not (C_UnitAuras and C_TooltipInfo) then return 0 end
+local function ScanBuffBonus()
     local total = 0
     for i = 1, 40 do
         local aura = C_UnitAuras.GetBuffDataByIndex("player", i)
@@ -116,6 +115,22 @@ local function GetBuffBonus()
         end
     end
     return total
+end
+
+-- The last buff bonus that could be read
+local lastBuffBonus = 0
+
+-- Buffs can't be read by addons in combat, and sometimes just after it, so keep the last
+-- known bonus until they can be read again
+local function GetBuffBonus()
+    if not (C_UnitAuras and C_TooltipInfo) or InCombatLockdown() then
+        return lastBuffBonus
+    end
+    local ok, bonus = pcall(ScanBuffBonus)
+    if ok then
+        lastBuffBonus = bonus
+    end
+    return lastBuffBonus
 end
 
 -- Fishing skill and where it comes from: { rank, lure, rod, buffs, total }, or nil if
