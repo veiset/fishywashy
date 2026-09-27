@@ -106,6 +106,8 @@ function Storage.Init()
         end
     end
     db.globalSessions = db.globalSessions or 1
+    -- Left over from a temporary debug command
+    db.skillDebug = nil
 end
 
 function Storage.GetSetting(key)

@@ -57,27 +57,47 @@ end
 local function CreateBaitStatus(parent)
     local text = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     -- A fixed start, so the ticking bait timer only changes the end of the text
-    text:SetPoint("TOPLEFT", 111, -8)
+    text:SetPoint("TOPLEFT", 151, -8)
     text:SetJustifyH("LEFT")
+
+    local skill
+
+    -- Hovering the text shows where the fishing skill comes from
+    local hover = CreateFrame("Frame", nil, parent)
+    hover:SetAllPoints(text)
+    hover:EnableMouse(true)
+    hover:SetScript("OnEnter", function(self)
+        if not skill then return end
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+        GameTooltip:SetText("Fishing skill")
+        GameTooltip:AddDoubleLine("Rank", skill.rank, 1, 1, 1, 1, 1, 1)
+        GameTooltip:AddDoubleLine("Bait", "+" .. skill.lure, 1, 1, 1, 0.25, 1, 0.25)
+        GameTooltip:AddDoubleLine("Fishing pole", "+" .. skill.rod, 1, 1, 1, 0.25, 1, 0.25)
+        GameTooltip:AddDoubleLine("Buffs", "+" .. skill.buffs, 1, 1, 1, 0.25, 1, 0.25)
+        GameTooltip:AddDoubleLine("Total", skill.total, 1, 0.82, 0, 0.47, 0.47, 1)
+        GameTooltip:Show()
+    end)
+    hover:SetScript("OnLeave", GameTooltip_Hide)
 
     local function Update()
         if not Bait.HasFishingPole() then
+            skill = nil
             text:SetText("Bait: no fishing pole equipped")
             return
         end
+        skill = Bait.GetFishingSkill()
         local timeLeft = Bait.GetTimeLeft()
         local bait
         if timeLeft then
-            bait = ("Bait: |cff40ff40applied|r (%d:%02d)"):format(timeLeft / 60, timeLeft % 60)
+            -- The skill bonus comes from the bait, so show it in place of "applied" when known
+            local applied = skill and skill.lure > 0 and ("+%d"):format(skill.lure) or "applied"
+            bait = ("Bait: |cff40ff40%s|r (%d:%02d)"):format(applied, timeLeft / 60, timeLeft % 60)
         else
             bait = "Bait: |cffff4040none|r"
         end
-        -- "Fishing 225 (+95)": the rank in light blue, then the gear and bait bonus in the same
-        -- green as "applied"
-        local rank, bonus = Bait.GetFishingSkill()
-        if rank then
-            local bonusText = bonus > 0 and (" (|cff40ff40+%d|r)"):format(bonus) or ""
-            text:SetText(("Fishing |cff7777ff%d|r%s   %s"):format(rank, bonusText, bait))
+        -- "Fishing 311   Bait: +75 (9:30)", with the total skill in light blue
+        if skill then
+            text:SetText(("Fishing |cff7777ff%d|r   %s"):format(skill.total, bait))
         else
             text:SetText(bait)
         end

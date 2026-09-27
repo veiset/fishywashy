@@ -27,9 +27,9 @@ function Bait.HasFishingPole()
     return classID == WEAPON_CLASS and subclassID == FISHING_POLE_SUBCLASS
 end
 
--- The trained fishing rank, and the bonus on top of it from the pole, bait and other gear
--- combined. nil if Fishing isn't found.
-function Bait.GetFishingSkill()
+-- The trained fishing rank, and the temporary bonus on top of it, which in practice is the
+-- applied bait. nil if Fishing isn't found.
+local function GetRankAndLure()
     if GetProfessions then
         -- Newer clients: Fishing is the fourth profession slot
         local fishing = select(4, GetProfessions())
@@ -46,6 +46,54 @@ function Bait.GetFishingSkill()
             end
         end
     end
+end
+
+-- The fishing number in a line such as "Increased Fishing +3." or
+-- "Your Fishing Skill is increased by 8." (English wording only)
+local function FishingNumber(line)
+    return tonumber(line and line:match("[Ff]ishing[^%d]-(%d+)"))
+end
+
+-- The pole's own bonus, from its "Equip: Increased Fishing +3." tooltip line
+local function GetRodBonus()
+    local tooltip = C_TooltipInfo and C_TooltipInfo.GetInventoryItem("player", MAIN_HAND_SLOT)
+    for _, line in ipairs(tooltip and tooltip.lines or {}) do
+        -- Only the "Equip:" line; "Requires Fishing (1)" is not a bonus
+        if line.leftText and line.leftText:match("^Equip:") then
+            local bonus = FishingNumber(line.leftText)
+            if bonus then return bonus end
+        end
+    end
+    return 0
+end
+
+-- Bonuses from buffs such as food, from tooltips like "Your Fishing Skill is increased by 8."
+local function GetBuffBonus()
+    if not (C_UnitAuras and C_TooltipInfo) then return 0 end
+    local total = 0
+    for i = 1, 40 do
+        local aura = C_UnitAuras.GetBuffDataByIndex("player", i)
+        if not aura then break end
+        local tooltip = C_TooltipInfo.GetUnitBuffByAuraInstanceID("player", aura.auraInstanceID)
+        for _, line in ipairs(tooltip and tooltip.lines or {}) do
+            local bonus = FishingNumber(line.leftText)
+            if bonus then
+                total = total + bonus
+                break
+            end
+        end
+    end
+    return total
+end
+
+-- Fishing skill and where it comes from: { rank, lure, rod, buffs, total }, or nil if
+-- Fishing isn't found
+function Bait.GetFishingSkill()
+    local rank, lure = GetRankAndLure()
+    if not rank then return nil end
+    local skill = { rank = rank, lure = lure or 0, rod = GetRodBonus(), buffs = GetBuffBonus() }
+    skill.total = skill.rank + skill.lure + skill.rod + skill.buffs
+    return skill
 end
 
 -- Seconds left on the bait, or nil when none is applied.
