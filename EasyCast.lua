@@ -19,6 +19,15 @@ end)
 
 local lastClick = 0
 
+-- The mouse is over the bobber when the game shows its tooltip. Only the English name is
+-- known, so other languages always allow casting.
+local BOBBER_NAME = "fishing bobber"
+
+local function IsOverBobber()
+    local line = GameTooltip:IsShown() and GameTooltipTextLeft1:GetText()
+    return line and line:lower() == BOBBER_NAME
+end
+
 local function ClearBinding()
     if not InCombatLockdown() then
         ClearOverrideBindings(button)
@@ -32,11 +41,9 @@ WorldFrame:HookScript("OnMouseDown", function(_, mouseButton)
         or not Bait.HasFishingPole() then
         return
     end
-    -- While the line is out, right-clicks on the bobber are for looting it: the game is
-    -- showing its tooltip, anchored to the screen rather than to a UI frame. Once the cast
-    -- has ended the fading tooltip no longer matters.
-    if UnitChannelInfo("player") == Catches.FISHING
-        and GameTooltip:IsShown() and GameTooltip:GetOwner() == UIParent then
+    -- While the line is out, right-clicks on the bobber are for looting it. Once the cast
+    -- has ended its fading tooltip no longer matters.
+    if UnitChannelInfo("player") == Catches.FISHING and IsOverBobber() then
         lastClick = 0
         return
     end

@@ -10,7 +10,7 @@ events:SetScript("OnEvent", function(self, _, name)
     -- Settings left boosted by a logout or crash mid-cast
     Sound.Restore()
     UI.Init()
-    print("FishyWashy loaded")
+    print("FishyWashy loaded, equip a fishing rod or type /fishy to open")
 end)
 
 SLASH_FISHYWASHY1 = "/fishy"

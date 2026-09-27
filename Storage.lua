@@ -10,16 +10,16 @@ local DEFAULTS = {
     enabled = true,
     volume = 0.85,
     soundInBackground = true,
-    rightClickCast = false,
+    rightClickCast = true,
     showStats = true,
     statsIncludeMissed = false,
-    showAdvancedStats = true,
+    showAdvancedStats = false,
     showConfig = true,
     showGlobalStats = true,
     showZones = true,
     showHistory = true,
-    showHistoryGraph = true,
-    globalShowLastSeen = true,
+    showHistoryGraph = false,
+    globalShowLastSeen = false,
 }
 
 local db
