@@ -4,11 +4,15 @@
 ## IconTexture: Interface\AddOns\FishyWashy\icon
 ## SavedVariables: FishyWashyDB
 
+Config.lua
 Storage.lua
-Sound.lua
 Bait.lua
 Catches.lua
+Sound.lua
 Stats.lua
-Debug.lua
+ui\Panel.lua
+ui\ConfigPanel.lua
+ui\StatsPanel.lua
+ui\HistoryPanel.lua
 UI.lua
 Core.lua

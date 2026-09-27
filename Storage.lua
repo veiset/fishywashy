@@ -12,7 +12,7 @@ local DEFAULTS = {
     showStats = true,
     statsIncludeMissed = false,
     showAdvancedStats = true,
-    debug = false,
+    showConfig = false,
 }
 
 local db

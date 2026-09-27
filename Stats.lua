@@ -47,7 +47,7 @@ function Stats.GetSummary(includeMissed)
     return total, entries, caught
 end
 
--- Share of casts that were caught, number missed, and average seconds from cast to catch.
+-- Share of casts that were caught, casts caught, all casts, and average seconds from cast to catch.
 -- The rate and average are nil until there's data for them.
 function Stats.GetCastSummary()
     local casts, caught, seconds = 0, 0, 0
@@ -60,16 +60,15 @@ function Stats.GetCastSummary()
     end
     local rate = casts > 0 and caught / casts * 100 or nil
     local average = caught > 0 and seconds / caught or nil
-    return rate, casts - caught, average
-end
-
--- Items caught per hour since the stats were last reset
-function Stats.GetPerHour(total)
-    local hours = math.max(time() - Storage.GetStatsStart(), 1) / 3600
-    return total / hours
+    return rate, caught, casts, average
 end
 
 -- Seconds since the stats were last reset
 function Stats.GetSessionLength()
     return time() - Storage.GetStatsStart()
+end
+
+-- Items caught per hour since the stats were last reset
+function Stats.GetPerHour(total)
+    return total / (math.max(Stats.GetSessionLength(), 1) / 3600)
 end

@@ -1,5 +1,5 @@
 local _, ns = ...
-local Storage = ns.Storage
+local Config, Storage = ns.Config, ns.Storage
 
 -- Records every fishing cast and everything looted from fishing.
 local Catches = {}
@@ -7,11 +7,6 @@ ns.Catches = Catches
 
 local GetSpellName = (C_Spell and C_Spell.GetSpellName) or GetSpellInfo
 local FISHING = GetSpellName(7620)
--- Clicking the bobber ends the cast just before the loot opens, so wait this long before
--- counting a cast as missed
-local LOOT_GRACE = 1
--- A new cast starting this soon after the last one stopped is a recast, which isn't a miss
-local RECAST_WINDOW = 0.3
 
 local listeners = {}
 -- The cast in progress: { time, startedAt, stoppedAt }
@@ -75,7 +70,7 @@ end
 local function StartCast()
     if currentCast then
         local stoppedAt = currentCast.stoppedAt
-        if stoppedAt and GetTime() - stoppedAt < RECAST_WINDOW then
+        if stoppedAt and GetTime() - stoppedAt < Config.RECAST_WINDOW then
             -- Recast: forget the old cast rather than count it as missed
             currentCast = nil
         else
@@ -88,10 +83,9 @@ end
 
 local function StopCast()
     local cast = currentCast
-    if cast then
-        cast.stoppedAt = GetTime()
-    end
-    C_Timer.After(LOOT_GRACE, function()
+    if not cast then return end
+    cast.stoppedAt = GetTime()
+    C_Timer.After(Config.LOOT_GRACE, function()
         if currentCast == cast then
             FinishCast(false)
             NotifyChange()

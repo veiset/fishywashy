@@ -11,20 +11,6 @@ local FISHING_POLE_SUBCLASS = 20
 local GetItemInfoInstant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
 local GetItemCount = (C_Item and C_Item.GetItemCount) or GetItemCount
 
--- Known fishing lure item IDs, strongest first
-Bait.ITEMS = {
-    6533,  -- Aquadynamic Fish Attractor
-    34861, -- Sharpened Fish Hook
-    46006, -- Glow Worm
-    62673, -- Feathered Lure
-    68049, -- Heat-Treated Spinning Lure
-    7307,  -- Flesh Eating Worm
-    6532,  -- Bright Baubles
-    6811,  -- Aquadynamic Fish Lens
-    6530,  -- Nightcrawlers
-    6529,  -- Shiny Bauble
-}
-
 function Bait.GetCount(itemID)
     return GetItemCount(itemID)
 end
