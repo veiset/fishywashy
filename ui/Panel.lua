@@ -51,6 +51,20 @@ function Panel.CreateSmallButton(parent, text, width, onClick)
     return button
 end
 
+-- Mutes a small button's red towards grey, with white text, while what it opens is showing.
+-- This is separate from the hover glow, which still shows on top.
+function Panel.SetButtonActive(button, active)
+    if not button.activeTint then
+        -- Above the button's own background, below its text
+        button.activeTint = button:CreateTexture(nil, "BORDER")
+        button.activeTint:SetPoint("TOPLEFT", 3, -3)
+        button.activeTint:SetPoint("BOTTOMRIGHT", -3, 3)
+        button.activeTint:SetColorTexture(0.35, 0.3, 0.3, 0.55)
+    end
+    button.activeTint:SetShown(active)
+    button:SetNormalFontObject(active and "GameFontHighlightSmall" or "GameFontNormalSmall")
+end
+
 -- A small button that asks for confirmation with the given StaticPopup
 function Panel.CreatePopupButton(parent, text, width, popup)
     return Panel.CreateSmallButton(parent, text, width, function()

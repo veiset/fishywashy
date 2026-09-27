@@ -99,26 +99,44 @@ local function GetRodBonus()
     return 0
 end
 
--- Bonuses from buffs such as food, from tooltips like "Your Fishing Skill is increased by 8."
-local function ScanBuffBonus()
-    local total = 0
+-- The skill number in a buff line such as "Your Fishing Skill is increased by 8." (English
+-- wording only). Stricter than FishingNumber, so buffs like "Uncommon Fishing" that mention
+-- fishing and a number without raising the skill aren't counted.
+local function FishingSkillNumber(line)
+    return tonumber(line and line:match("[Ff]ishing [Ss]kill[^%d]-(%d+)"))
+end
+
+-- Reads the buffs: the fishing skill bonus from buffs such as food, when the last of those runs
+-- out (GetTime, or nil), and the other fishing buffs, such as "Uncommon Fishing":
+-- { { name, icon, expires } }
+local function ScanBuffs()
+    local total, expires, others = 0, nil, {}
     for i = 1, 40 do
         local aura = C_UnitAuras.GetBuffDataByIndex("player", i)
         if not aura then break end
         local tooltip = C_TooltipInfo.GetUnitBuffByAuraInstanceID("player", aura.auraInstanceID)
+        local bonus
         for _, line in ipairs(tooltip and tooltip.lines or {}) do
-            local bonus = FishingNumber(line.leftText)
-            if bonus then
-                total = total + bonus
-                break
+            bonus = FishingSkillNumber(line.leftText)
+            if bonus then break end
+        end
+        local auraExpires = aura.expirationTime and aura.expirationTime > 0 and aura.expirationTime or nil
+        if bonus then
+            total = total + bonus
+            if auraExpires then
+                expires = math.max(expires or 0, auraExpires)
             end
+        elseif aura.name and aura.name:find("Fishing") then
+            table.insert(others, { name = aura.name, icon = aura.icon, expires = auraExpires })
         end
     end
-    return total
+    return total, expires, others
 end
 
--- The last buff bonus that could be read
+-- The last buffs that could be read
 local lastBuffBonus = 0
+local lastBuffExpires
+local lastOtherBuffs = {}
 
 -- Buffs can't be read by addons in combat, and sometimes just after it, so keep the last
 -- known bonus until they can be read again
@@ -126,11 +144,39 @@ local function GetBuffBonus()
     if not (C_UnitAuras and C_TooltipInfo) or InCombatLockdown() then
         return lastBuffBonus
     end
-    local ok, bonus = pcall(ScanBuffBonus)
+    local ok, bonus, expires, others = pcall(ScanBuffs)
     if ok then
-        lastBuffBonus = bonus
+        lastBuffBonus, lastBuffExpires, lastOtherBuffs = bonus, expires, others
     end
     return lastBuffBonus
+end
+
+-- The first fishing buff that doesn't raise the skill, such as "Uncommon Fishing":
+-- { name, icon, timeLeft (nil if it doesn't run out) }, or nil. Uses the last buff scan.
+function Bait.GetOtherFishingBuff()
+    local buff = lastOtherBuffs[1]
+    if not buff then return nil end
+    local timeLeft = buff.expires and buff.expires - GetTime()
+    if timeLeft and timeLeft <= 0 then return nil end
+    return { name = buff.name, icon = buff.icon, timeLeft = timeLeft }
+end
+
+-- Seconds left on the fishing skill buff (such as fishing food), or nil when there is none.
+-- Uses the last buff scan, which runs with the fishing skill every second.
+function Bait.GetFoodBuffTimeLeft()
+    local left = lastBuffExpires and lastBuffExpires - GetTime()
+    if left and left > 0 then
+        return left
+    end
+end
+
+-- The first food from Config.FOOD_ITEMS that is in the bags, or nil
+function Bait.GetBestFood()
+    for _, itemID in ipairs(ns.Config.FOOD_ITEMS) do
+        if GetItemCount(itemID) > 0 then
+            return itemID
+        end
+    end
 end
 
 -- Fishing skill and where it comes from: { rank, lure, rod, buffs, total }, or nil if

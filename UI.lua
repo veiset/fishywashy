@@ -188,6 +188,123 @@ local function CreateBaitButtons(parent)
     Update()
 end
 
+local FOOD_BUTTON_SIZE = 24
+
+-- Very small time-left text under an icon, so it doesn't cover the icon's count
+local function CreateTinyTimer(icon)
+    local text = icon:CreateFontString(nil, "OVERLAY")
+    text:SetFont(STANDARD_TEXT_FONT, 8, "OUTLINE")
+    text:SetPoint("TOP", icon, "BOTTOM", 0, -1)
+    return text
+end
+
+local function FormatBuffTime(seconds)
+    if seconds < 60 then
+        return ("%ds"):format(seconds)
+    end
+    return ("%dm"):format(seconds / 60)
+end
+
+-- At the right end of the bait row: the best food from Config.FOOD_ITEMS in the bags, to eat
+-- with a click. While a fishing food buff is up the icon dims and shows the time left.
+-- Nothing shows when there's no such food in the bags.
+local function CreateFoodButton(parent)
+    -- Secure, as only clicks on secure buttons may use items
+    local button = CreateFrame("Button", nil, parent, "SecureActionButtonTemplate")
+    -- A little smaller than the bait buttons, to leave room for the timer under it
+    button:SetSize(FOOD_BUTTON_SIZE, FOOD_BUTTON_SIZE)
+    button:SetPoint("TOPRIGHT", -10, BAIT_TOP + 2)
+    button:RegisterForClicks("AnyUp", "AnyDown")
+    button:SetAttribute("type", "item")
+
+    local icon = button:CreateTexture(nil, "ARTWORK")
+    icon:SetAllPoints()
+    button:SetHighlightTexture("Interface/Buttons/ButtonHilight-Square", "ADD")
+    local count = button:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
+    count:SetPoint("BOTTOMRIGHT", -1, 1)
+    local timeLeft = CreateTinyTimer(button)
+
+    local foodID
+    button:SetScript("OnEnter", function(self)
+        if not foodID then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetItemByID(foodID)
+        GameTooltip:Show()
+    end)
+    button:SetScript("OnLeave", GameTooltip_Hide)
+
+    -- Which food the button eats: only changeable out of combat
+    local function UpdateFood()
+        if InCombatLockdown() then return end
+        foodID = Bait.GetBestFood()
+        button:SetShown(foodID ~= nil)
+        if foodID then
+            button:SetAttribute("item", "item:" .. foodID)
+            icon:SetTexture(GetItemIcon(foodID))
+            count:SetText(Bait.GetCount(foodID))
+        end
+    end
+
+    -- The buff timer, which can update any time
+    local function UpdateTimer()
+        local left = Bait.GetFoodBuffTimeLeft()
+        timeLeft:SetText(left and FormatBuffTime(left) or "")
+        icon:SetDesaturated(left ~= nil)
+        icon:SetAlpha(left and 0.6 or 1)
+    end
+
+    local events = CreateFrame("Frame")
+    events:RegisterEvent("PLAYER_ENTERING_WORLD")
+    events:RegisterEvent("BAG_UPDATE_DELAYED")
+    events:RegisterEvent("PLAYER_REGEN_ENABLED")
+    events:SetScript("OnEvent", UpdateFood)
+    UpdateFood()
+    UpdateTimer()
+    C_Timer.NewTicker(1, UpdateTimer)
+    return button
+end
+
+-- Left of the food: another fishing buff you have, such as "Uncommon Fishing", with its time
+-- left under it. Shows only while you have one.
+local function CreateFishingBuffIcon(parent, foodButton)
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:SetSize(FOOD_BUTTON_SIZE, FOOD_BUTTON_SIZE)
+    frame:EnableMouse(true)
+    local icon = frame:CreateTexture(nil, "ARTWORK")
+    icon:SetAllPoints()
+    local timeLeft = CreateTinyTimer(frame)
+
+    local buff
+    frame:SetScript("OnEnter", function(self)
+        if not buff then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(buff.name)
+        if buff.timeLeft then
+            GameTooltip:AddLine(FormatBuffTime(buff.timeLeft) .. " left", 1, 1, 1)
+        end
+        GameTooltip:Show()
+    end)
+    frame:SetScript("OnLeave", GameTooltip_Hide)
+
+    local function Update()
+        buff = Bait.GetOtherFishingBuff()
+        frame:SetShown(buff ~= nil)
+        if not buff then return end
+        icon:SetTexture(buff.icon)
+        timeLeft:SetText(buff.timeLeft and FormatBuffTime(buff.timeLeft) or "")
+        -- Next to the food button, or at the right edge when there's no food
+        frame:ClearAllPoints()
+        if foodButton:IsShown() then
+            frame:SetPoint("RIGHT", foodButton, "LEFT", -6, 0)
+        else
+            frame:SetPoint("TOPRIGHT", -10, BAIT_TOP + 2)
+        end
+    end
+
+    Update()
+    C_Timer.NewTicker(1, Update)
+end
+
 StaticPopupDialogs["FISHYWASHY_RESET"] = {
     text = "Start a new session? This clears the session stats and history; global stats are kept.",
     button1 = YES,
@@ -203,6 +320,7 @@ function UI.Init()
     frame = CreateMainFrame()
     CreateBaitStatus(frame)
     CreateBaitButtons(frame)
+    CreateFishingBuffIcon(frame, CreateFoodButton(frame))
 
     local stats = StatsPanel.Create(frame)
     local zones = ZonesPanel.Create(frame)
@@ -271,16 +389,11 @@ function UI.Init()
 
     -- One row of buttons under the bait
     local configButton
-    -- Reads "Hide config" and stays lit, with white text, while the config panel is open
+    -- Reads "Hide config" and stays lit while the config panel is open
     local function UpdateConfigButton()
         local shown = Storage.GetSetting("showConfig")
         configButton:SetText(shown and "Hide config" or "Show config")
-        configButton:SetNormalFontObject(shown and "GameFontHighlightSmall" or "GameFontNormalSmall")
-        if shown then
-            configButton:LockHighlight()
-        else
-            configButton:UnlockHighlight()
-        end
+        Panel.SetButtonActive(configButton, shown)
     end
     configButton = Panel.CreateSmallButton(frame, "", ACTION_BUTTON_WIDTH, function()
         Storage.SetSetting("showConfig", not Storage.GetSetting("showConfig"))
@@ -291,6 +404,10 @@ function UI.Init()
     UpdateConfigButton()
     local globalStatsButton = Panel.CreateSmallButton(frame, "Global stats", ACTION_BUTTON_WIDTH, DetailsWindow.Toggle)
     globalStatsButton:SetPoint("LEFT", configButton, "RIGHT", 4, 0)
+    -- Stays lit while the all-time stats window is open, however it was opened or closed
+    DetailsWindow.OnShownChanged(function(shown)
+        Panel.SetButtonActive(globalStatsButton, shown)
+    end)
     local newSession = Panel.CreatePopupButton(frame, "New session", ACTION_BUTTON_WIDTH, "FISHYWASHY_RESET")
     newSession:SetPoint("LEFT", globalStatsButton, "RIGHT", 4, 0)
     for _, button in ipairs({ configButton, globalStatsButton, newSession }) do

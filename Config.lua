@@ -18,6 +18,11 @@ Config.BAIT_ITEMS = {
     6529,  -- Shiny Bauble
 }
 
+-- Food to eat while fishing, best first; the best one in your bags gets a button
+Config.FOOD_ITEMS = {
+    4593, -- Bristle Whisker Catfish
+}
+
 -- Seconds after casting before the volume is boosted, to skip the sound of the cast itself
 Config.BOOST_DELAY = 0.5
 

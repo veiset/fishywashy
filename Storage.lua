@@ -18,6 +18,7 @@ local DEFAULTS = {
     showZones = false,
     showHistory = true,
     showHistoryGraph = false,
+    detailsShowAreas = true,
 }
 
 local db

@@ -24,6 +24,18 @@ local CATEGORIES = {
 
 local window
 local summary, bait, zones
+local shownListeners = {}
+
+-- callback(shown) runs whenever the window opens or closes
+function DetailsWindow.OnShownChanged(callback)
+    table.insert(shownListeners, callback)
+end
+
+local function NotifyShownChanged(shown)
+    for _, callback in ipairs(shownListeners) do
+        callback(shown)
+    end
+end
 local sections = {}
 -- The question-mark icon, for items the game hasn't loaded yet
 local UNKNOWN_ICON = 134400
@@ -119,22 +131,31 @@ local function Refresh()
     end
 
     -- Zones, each followed by its areas, and each area by its loot table: every item caught
-    -- there with its drop rate
+    -- there with its drop rate. Without details per area, each zone has one loot table for all
+    -- its areas.
     local zoneRows = {}
+    local function AddItemRows(items, indent)
+        for _, item in ipairs(items) do
+            table.insert(zoneRows, {
+                text = indent .. Panel.FormatItem(item.icon, item.link),
+                value = FormatCount(item.count, item.percent),
+                link = item.link,
+            })
+        end
+    end
+    local merge = not Storage.GetSetting("detailsShowAreas")
     for _, zone in ipairs(Stats.GetZoneSummary()) do
         table.insert(zoneRows, { text = zone.zone, value = FormatCount(zone.count, zone.percent), heading = true })
-        for _, subzone in ipairs(zone.subzones) do
-            table.insert(zoneRows, {
-                text = "    |cff9d9d9d" .. subzone.name .. "|r",
-                value = FormatCount(subzone.count, subzone.percent),
-                heading = true,
-            })
-            for _, item in ipairs(subzone.items) do
+        if merge then
+            AddItemRows(Stats.MergeAreaItems(zone), "    ")
+        else
+            for _, subzone in ipairs(zone.subzones) do
                 table.insert(zoneRows, {
-                    text = "        " .. Panel.FormatItem(item.icon, item.link),
-                    value = FormatCount(item.count, item.percent),
-                    link = item.link,
+                    text = "    |cff9d9d9d" .. subzone.name .. "|r",
+                    value = FormatCount(subzone.count, subzone.percent),
+                    heading = true,
                 })
+                AddItemRows(subzone.items, "        ")
             end
         end
     end
@@ -230,13 +251,20 @@ local function Create()
         sections[category.key] = Panel.Create(content, category.title, "None yet", nil, TEXT_LEFT)
     end
     zones = Panel.Create(content, "Zones", "No fish caught yet", nil, TEXT_LEFT)
+    zones:AddHeadingCheckbox("Show details per area", "detailsShowAreas", Refresh)
     -- Striped item rows, as the numbers are far from the names in this wide window
     for _, section in pairs(sections) do
         section:SetStriped(true)
     end
     zones:SetStriped(true)
 
-    window:SetScript("OnShow", Refresh)
+    window:SetScript("OnShow", function()
+        Refresh()
+        NotifyShownChanged(true)
+    end)
+    window:SetScript("OnHide", function()
+        NotifyShownChanged(false)
+    end)
     Catches.OnChange(function()
         if window:IsShown() then Refresh() end
     end)
@@ -248,8 +276,10 @@ end
 
 function DetailsWindow.Toggle()
     if not window then
+        -- New frames start shown, so OnShow doesn't run for the first opening
         Create()
         Refresh()
+        NotifyShownChanged(true)
         return
     end
     window:SetShown(not window:IsShown())

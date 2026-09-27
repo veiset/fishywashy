@@ -117,6 +117,25 @@ local function GetAreaItems(zone, subzone)
     return items
 end
 
+-- A zone's loot table: its areas' items added together, with each item's share, most first
+function Stats.MergeAreaItems(zone)
+    local total, byItem, items = 0, {}, {}
+    for _, subzone in ipairs(zone.subzones) do
+        for _, item in ipairs(subzone.items) do
+            local merged = byItem[item.itemID]
+            if not merged then
+                merged = { itemID = item.itemID, link = item.link, icon = item.icon, count = 0 }
+                byItem[item.itemID] = merged
+                table.insert(items, merged)
+            end
+            merged.count = merged.count + item.count
+            total = total + item.count
+        end
+    end
+    AddShares(items, total)
+    return items
+end
+
 -- All-time items caught in each zone and its share of the total, most first, with the zone's
 -- areas and each one's share of the zone, most first, and each area's items:
 -- { zone, count, percent, subzones = { { name, count, percent, items = { ... } } } }
