@@ -194,10 +194,20 @@ local function BuildShareMessage()
     return table.concat(parts):sub(1, MAX_MESSAGE_LENGTH)
 end
 
--- Puts the stats in the chat input box, so the player picks the channel and sends it
-local function ShareStats()
+-- "FishyWashy: Fishing skill 311 (rank 225, bait +75, pole +3, buffs +8)"
+local function BuildSkillMessage()
+    local skill = ns.CharacterInfo.GetFishingSkill()
+    if not skill then
+        return "FishyWashy: Fishing skill unknown"
+    end
+    return ("FishyWashy: Fishing skill %d (rank %d, bait +%d, pole +%d, buffs +%d)"):format(
+        skill.total, skill.rank, skill.lure, skill.rod, skill.buffs)
+end
+
+-- Puts a message in the chat input box, so the player picks the channel and sends it
+local function OpenChat(message)
     local open = ChatFrame_OpenChat or (ChatFrameUtil and ChatFrameUtil.OpenChat)
-    open(BuildShareMessage())
+    open(message)
 end
 
 local function Create()
@@ -219,9 +229,16 @@ local function Create()
     title:SetPoint("TOPLEFT", 10, -8)
     title:SetText("FishyWashy all-time stats")
     local close = Panel.CreateCloseButton(window, function() window:Hide() end)
-    local share = Panel.CreateSmallButton(window, "Share stats", 84, ShareStats)
+    local share = Panel.CreateSmallButton(window, "Share stats", 84, function()
+        OpenChat(BuildShareMessage())
+    end)
     share:SetHeight(16)
     share:SetPoint("RIGHT", close, "LEFT", -6, 0)
+    local shareSkill = Panel.CreateSmallButton(window, "Share skill", 84, function()
+        OpenChat(BuildSkillMessage())
+    end)
+    shareSkill:SetHeight(16)
+    shareSkill:SetPoint("RIGHT", share, "LEFT", -4, 0)
     Panel.CreateDivider(window, -24)
 
     local scroll = CreateFrame("ScrollFrame", nil, window, "UIPanelScrollFrameTemplate")
