@@ -1,7 +1,9 @@
 ## Interface: 16001
 ## Title: FishyWashy
-## Version: 0.4
-## IconTexture: Interface\AddOns\FishyWashy\icon
+## Notes: Fishing helper: louder splash, bait buttons, easy cast and fishing stats
+## Author: veiset
+## Version: 1.0.0
+## IconTexture: 4777763
 ## SavedVariables: FishyWashyDB
 
 Config.lua

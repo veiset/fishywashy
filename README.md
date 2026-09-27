@@ -1,5 +1,7 @@
 # FishyWashy
 
+![FishyWashy logo](docs/logo.png)
+
 A small World of Warcraft Classic fishing addon.
 
 - Boosts the volume while fishing so the bobber splash is easy to hear
@@ -9,12 +11,12 @@ A small World of Warcraft Classic fishing addon.
 
 The window shows automatically when a fishing pole is equipped. `/fishy` toggles it.
 
-![FishyWashy window](screenshots/main.png)
+![FishyWashy window](docs/main.png)
 
 ## Configurable
 
 Show only the panels you want, turn on advanced stats, and tune the sound.
 
-![Advanced stats](screenshots/advanced.png)
+![Advanced stats](docs/advanced.png)
 
-![Config panel](screenshots/config.png)
+![Config panel](docs/config.png)
