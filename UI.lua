@@ -9,8 +9,8 @@ local frame
 
 local WIDTH = 285
 local BAIT_TOP = -30
-local SHOW_CONFIG_TOP = -61
-local ACTIONS_BOTTOM = -84
+local TOGGLES_LEFT = 180
+local ACTIONS_BOTTOM = -66
 
 -- Anchor by the top-left corner so height changes only move the bottom edge
 local function AnchorByTopLeft(f)
@@ -138,26 +138,6 @@ local function CreateBaitButtons(parent)
     Update()
 end
 
-local function CreateSmallButton(parent, text, width)
-    local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    button:SetSize(width, 18)
-    button:SetNormalFontObject("GameFontNormalSmall")
-    button:SetHighlightFontObject("GameFontHighlightSmall")
-    button:SetText(text)
-    return button
-end
-
-StaticPopupDialogs["FISHYWASHY_RESET"] = {
-    text = "Reset all FishyWashy stats and history?",
-    button1 = YES,
-    button2 = NO,
-    OnAccept = function() Catches.Reset() end,
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true,
-    preferredIndex = 3,
-}
-
 function UI.Init()
     frame = CreateMainFrame()
     CreateBaitStatus(frame)
@@ -202,8 +182,8 @@ function UI.Init()
         end
         UpdateHeight()
     end
-    local _, showConfigLabel = Panel.CreateSettingCheckbox(frame, SHOW_CONFIG_TOP, "Show config", "showConfig",
-        ApplyShowConfig)
+    -- The toggles sit in a column to the right of the bait buttons
+    local showConfig = Panel.CreateSettingCheckbox(frame, 0, "Show config", "showConfig", ApplyShowConfig)
     ApplyShowConfig()
 
     local function ApplyShowStats()
@@ -212,16 +192,12 @@ function UI.Init()
         history:SetShown(show)
         UpdateHeight()
     end
-    local showStats = Panel.CreateSettingCheckbox(frame, SHOW_CONFIG_TOP, "Show stats", "showStats", ApplyShowStats)
+    local showStats = Panel.CreateSettingCheckbox(frame, 0, "Show stats", "showStats", ApplyShowStats)
     showStats:ClearAllPoints()
-    showStats:SetPoint("LEFT", showConfigLabel, "RIGHT", 16, 0)
+    showStats:SetPoint("TOPLEFT", TOGGLES_LEFT, BAIT_TOP + 2)
+    showConfig:ClearAllPoints()
+    showConfig:SetPoint("TOPLEFT", showStats, "BOTTOMLEFT")
     ApplyShowStats()
-
-    local resetButton = CreateSmallButton(frame, "Reset", 46)
-    resetButton:SetPoint("TOPRIGHT", -10, BAIT_TOP - 5)
-    resetButton:SetScript("OnClick", function()
-        StaticPopup_Show("FISHYWASHY_RESET")
-    end)
 
     -- Only show the frame while a fishing pole is equipped
     local function UpdateVisibility()

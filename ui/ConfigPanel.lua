@@ -1,11 +1,22 @@
 local _, ns = ...
-local Panel, Storage, Sound = ns.Panel, ns.Storage, ns.Sound
+local Panel, Storage, Sound, Catches = ns.Panel, ns.Storage, ns.Sound, ns.Catches
 
--- The settings checkboxes and the volume slider.
+-- The settings checkboxes, the volume slider and the reset button.
 local ConfigPanel = {}
 ns.ConfigPanel = ConfigPanel
 
-local HEIGHT = 83
+local HEIGHT = 105
+
+StaticPopupDialogs["FISHYWASHY_RESET"] = {
+    text = "Reset the session? This clears all FishyWashy stats and history.",
+    button1 = YES,
+    button2 = NO,
+    OnAccept = function() Catches.Reset() end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
 
 local function CreateVolumeSlider(parent, anchor)
     local slider = CreateFrame("Slider", nil, parent, "BackdropTemplate")
@@ -71,6 +82,16 @@ function ConfigPanel.Create(parent, stats, onLayoutChange)
         -- The unsuccessful row changes the stats' height
         stats.Refresh()
         onLayoutChange()
+    end)
+
+    local reset = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    reset:SetSize(90, 18)
+    reset:SetPoint("TOPLEFT", 12, -81)
+    reset:SetNormalFontObject("GameFontNormalSmall")
+    reset:SetHighlightFontObject("GameFontHighlightSmall")
+    reset:SetText("Reset session")
+    reset:SetScript("OnClick", function()
+        StaticPopup_Show("FISHYWASHY_RESET")
     end)
 
     return panel
