@@ -101,8 +101,12 @@ local function StopCast()
     end)
 end
 
+-- Set once the open loot has been recorded, until the loot closes
+local lootRecorded = false
+
 local function RecordLoot()
-    if not IsFishingLoot() then return end
+    if lootRecorded or not IsFishingLoot() then return end
+    lootRecorded = true
     for slot = 1, GetNumLootItems() do
         -- Money has no item link
         local link = GetLootSlotLink(slot)
@@ -124,12 +128,18 @@ local function RecordLoot()
 end
 
 local events = CreateFrame("Frame")
+-- Quick loot addons take everything on LOOT_READY, before LOOT_OPENED, so record on
+-- whichever comes first
+events:RegisterEvent("LOOT_READY")
 events:RegisterEvent("LOOT_OPENED")
+events:RegisterEvent("LOOT_CLOSED")
 events:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", "player")
 events:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
 events:SetScript("OnEvent", function(_, event, _, _, spellID)
-    if event == "LOOT_OPENED" then
+    if event == "LOOT_READY" or event == "LOOT_OPENED" then
         RecordLoot()
+    elseif event == "LOOT_CLOSED" then
+        lootRecorded = false
     elseif Catches.IsFishingSpell(spellID) then
         if event == "UNIT_SPELLCAST_CHANNEL_START" then
             StartCast()

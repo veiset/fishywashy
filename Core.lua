@@ -1,5 +1,5 @@
 local addonName, ns = ...
-local Utils, Storage, Sound, Stats, UI = ns.Utils, ns.Storage, ns.Sound, ns.Stats, ns.UI
+local Utils, Storage, Sound, Stats, Catches, UI = ns.Utils, ns.Storage, ns.Sound, ns.Stats, ns.Catches, ns.UI
 
 -- Colours for the start-up message: the addon name, and the parts to notice
 local NAME_COLOR = "33ff99"
@@ -35,5 +35,13 @@ events:SetScript("OnEvent", function(self, _, name)
     PrintWelcome()
 end)
 
+-- "/fishy" toggles the window; "/fishy debug-reset_all_data" deletes all data, without asking
 SLASH_FISHYWASHY1 = "/fishy"
-SlashCmdList.FISHYWASHY = UI.Toggle
+SlashCmdList.FISHYWASHY = function(message)
+    if strtrim(message) == "debug-reset_all_data" then
+        Catches.ResetAll()
+        print(Utils.Color("FishyWashy", NAME_COLOR) .. " all data deleted, settings kept")
+        return
+    end
+    UI.Toggle()
+end

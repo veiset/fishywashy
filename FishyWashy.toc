@@ -2,7 +2,7 @@
 ## Title: FishyWashy
 ## Notes: Fishing helper: louder splash, bait buttons, easy cast and fishing stats
 ## Author: veiset
-## Version: 1.0.0
+## Version: 1.0.1
 ## IconTexture: 4777763
 ## SavedVariables: FishyWashyDB
 
