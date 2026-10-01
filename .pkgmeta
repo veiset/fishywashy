@@ -1,0 +1,10 @@
+package-as: FishyWashy
+
+ignore:
+    - README.md
+    - CHANGELOG.md
+    - docs
+
+manual-changelog:
+    filename: CHANGELOG.md
+    markup-type: markdown
