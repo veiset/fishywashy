@@ -1,4 +1,3 @@
-## 1.0.1
+## 1.0.2
 
-- Share your fishing skill in chat with the "Share skill" button in the Global stats window, including the breakdown of rank, bait, fishing pole and buffs
-- Fixed catches not being recorded when a quick loot addon is used
+- The fishing skill total now includes all fishing gear and enchants, such as a fishing hat, boots and gloves, not just the fishing pole. The breakdown shows them as "Gear"

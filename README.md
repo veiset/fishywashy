@@ -24,7 +24,7 @@ Show only the panels you want, turn on advanced stats, and tune the sound.
 
 ## Fishing skill
 
-Hover the fishing skill to see where it comes from: rank, bait, fishing pole and buffs.
+Hover the fishing skill to see where it comes from: rank, bait, gear and buffs.
 
 ![Fishing skill breakdown](docs/skill.png)
 

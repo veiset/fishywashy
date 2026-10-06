@@ -194,14 +194,14 @@ local function BuildShareMessage()
     return table.concat(parts):sub(1, MAX_MESSAGE_LENGTH)
 end
 
--- "FishyWashy: Fishing skill 311 (rank 225, bait +75, pole +3, buffs +8)"
+-- "FishyWashy: Fishing skill 311 (rank 225, bait +75, gear +3, buffs +8)"
 local function BuildSkillMessage()
     local skill = ns.CharacterInfo.GetFishingSkill()
     if not skill then
         return "FishyWashy: Fishing skill unknown"
     end
-    return ("FishyWashy: Fishing skill %d (rank %d, bait +%d, pole +%d, buffs +%d)"):format(
-        skill.total, skill.rank, skill.lure, skill.rod, skill.buffs)
+    return ("FishyWashy: Fishing skill %d (rank %d, bait +%d, gear +%d, buffs +%d)"):format(
+        skill.total, skill.rank, skill.lure, skill.gear, skill.buffs)
 end
 
 -- Puts a message in the chat input box, so the player picks the channel and sends it

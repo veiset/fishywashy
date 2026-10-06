@@ -46,17 +46,26 @@ local function FishingNumber(line)
     return tonumber(line and line:match("[Ff]ishing[^%d]-(%d+)"))
 end
 
--- The pole's own bonus, from its "Equip: Increased Fishing +3." tooltip line
-local function GetRodBonus()
-    local tooltip = C_TooltipInfo and C_TooltipInfo.GetInventoryItem("player", MAIN_HAND_SLOT)
-    for _, line in ipairs(tooltip and tooltip.lines or {}) do
-        -- Only the "Equip:" line; "Requires Fishing (1)" is not a bonus
-        if line.leftText and line.leftText:match("^Equip:") then
-            local bonus = FishingNumber(line.leftText)
-            if bonus then return bonus end
+-- The equipment slots, from head to tabard
+local FIRST_EQUIPPED_SLOT = 1
+local LAST_EQUIPPED_SLOT = 19
+
+-- The bonus from everything equipped, such as the pole, a fishing hat or boots: their
+-- "Equip: Increased Fishing +3." lines and fishing enchants ("Enchanted: Fishing +2")
+local function GetGearBonus()
+    if not C_TooltipInfo then return 0 end
+    local total = 0
+    for slot = FIRST_EQUIPPED_SLOT, LAST_EQUIPPED_SLOT do
+        local tooltip = C_TooltipInfo.GetInventoryItem("player", slot)
+        for _, line in ipairs(tooltip and tooltip.lines or {}) do
+            local text = line.leftText
+            -- Not "Requires Fishing (1)", which isn't a bonus
+            if text and (text:match("^Equip:") or text:match("[Ff]ishing %+%d")) then
+                total = total + (FishingNumber(text) or 0)
+            end
         end
     end
-    return 0
+    return total
 end
 
 -- The skill number in a buff line such as "Your Fishing Skill is increased by 8." (English
@@ -111,13 +120,13 @@ local function GetBuffBonus()
     return lastBuffBonus
 end
 
--- Fishing skill and where it comes from: { rank, lure, rod, buffs, total }, or nil if
+-- Fishing skill and where it comes from: { rank, lure, gear, buffs, total }, or nil if
 -- Fishing isn't found
 function CharacterInfo.GetFishingSkill()
     local rank, lure = GetRankAndLure()
     if not rank then return nil end
-    local skill = { rank = rank, lure = lure or 0, rod = GetRodBonus(), buffs = GetBuffBonus() }
-    skill.total = skill.rank + skill.lure + skill.rod + skill.buffs
+    local skill = { rank = rank, lure = lure or 0, gear = GetGearBonus(), buffs = GetBuffBonus() }
+    skill.total = skill.rank + skill.lure + skill.gear + skill.buffs
     return skill
 end
 
