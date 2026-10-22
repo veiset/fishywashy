@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0
+
+- Reel in with right-click while fishing, no need to aim at the bobber. The key can be changed in the config
+
 ## 1.0.2
 
 - The fishing skill total now includes all fishing gear and enchants, such as a fishing hat, boots and gloves, not just the fishing pole. The breakdown shows them as "Gear"

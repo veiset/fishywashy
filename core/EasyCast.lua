@@ -1,7 +1,8 @@
 local _, ns = ...
 local Config, Storage, CharacterInfo, Catches = ns.Config, ns.Storage, ns.CharacterInfo, ns.Catches
 
--- Double right-click on the world to cast Fishing while a fishing pole is equipped.
+-- Double right-click on the world to cast Fishing while a fishing pole is equipped, and reel in
+-- with a key or mouse button, right-click by default, while fishing.
 
 -- Only clicks on secure buttons may cast spells, so the second click of a double-click is
 -- briefly bound to this button
@@ -32,6 +33,36 @@ local function ClearBinding()
     end
 end
 
+-- While the line is out, the reel-in key is bound to the game's interact key, which interacts
+-- with the bobber without having to click on it. The game's "Enable Interact Key" option is turned
+-- on while fishing if it's off, and set back after.
+local interact = CreateFrame("Frame")
+
+-- SoftTargetInteract is 0 for off, 1 for gamepad only, 2 for keyboard and mouse only and 3 for
+-- both; "Enable Interact Key" sets 3
+local INTERACT_KEY_ON = "3"
+-- The player's own SoftTargetInteract while it's turned on for fishing, or nil
+local savedInteractKey
+
+local function BindInteract()
+    if not Storage.GetSetting("reelIn") or InCombatLockdown() then return end
+    local current = GetCVar("SoftTargetInteract")
+    if (tonumber(current) or 0) < 2 then
+        savedInteractKey = current
+        SetCVar("SoftTargetInteract", INTERACT_KEY_ON)
+    end
+    SetOverrideBinding(interact, true, Storage.GetSetting("reelInKey"), "INTERACTTARGET")
+end
+
+local function ClearInteract()
+    if InCombatLockdown() then return end
+    ClearOverrideBindings(interact)
+    if savedInteractKey then
+        SetCVar("SoftTargetInteract", savedInteractKey)
+        savedInteractKey = nil
+    end
+end
+
 WorldFrame:HookScript("OnMouseDown", function(_, mouseButton)
     if mouseButton ~= "RightButton" then return end
     -- Bindings can't be changed in combat; right-clicking a unit should still target or loot it
@@ -56,11 +87,23 @@ WorldFrame:HookScript("OnMouseDown", function(_, mouseButton)
     end
 end)
 
--- Don't leave the binding behind if combat starts or a loading screen comes before it was used
 local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_REGEN_DISABLED")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
-events:SetScript("OnEvent", function()
-    ClearBinding()
-    lastClick = 0
+-- Logging out mid-cast sets the interact key back too
+events:RegisterEvent("PLAYER_LOGOUT")
+events:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", "player")
+events:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+events:SetScript("OnEvent", function(_, event, _, _, spellID)
+    if event == "UNIT_SPELLCAST_CHANNEL_START" then
+        if Catches.IsFishingSpell(spellID) then BindInteract() end
+    elseif event == "UNIT_SPELLCAST_CHANNEL_STOP" then
+        ClearInteract()
+    else
+        -- Don't leave the bindings behind if combat starts or a loading screen comes before
+        -- they were used
+        ClearBinding()
+        ClearInteract()
+        lastClick = 0
+    end
 end)
