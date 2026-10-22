@@ -8,6 +8,7 @@ A small World of Warcraft Classic fishing addon.
 - Shows your total fishing skill and bait status
 - Apply bait and food buffs from your bags with a click
 - Double right-click to cast Fishing
+- Auto assist: reel in with right-click, no need to aim at the bobber
 - Session and all-time stats: catches, catch rate, zones and when you fish
 
 The window shows automatically when a fishing pole is equipped. `/fishy` toggles it.
