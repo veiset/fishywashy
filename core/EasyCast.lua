@@ -1,11 +1,13 @@
 local _, ns = ...
 local Config, Storage, CharacterInfo, Catches = ns.Config, ns.Storage, ns.CharacterInfo, ns.Catches
 
--- Double right-click on the world to cast Fishing while a fishing pole is equipped, and reel in
--- with a key or mouse button, right-click by default, while fishing.
+-- Cast Fishing with a double right-click on the world or with a hotkey while a fishing pole is
+-- equipped, and reel in with a key or mouse button, right-click by default, while fishing.
+local EasyCast = {}
+ns.EasyCast = EasyCast
 
--- Only clicks on secure buttons may cast spells, so the second click of a double-click is
--- briefly bound to this button
+-- Only clicks on secure buttons may cast spells, so the second click of a double-click, or the
+-- hotkey, is bound to this button
 local button = CreateFrame("Button", "FishyWashyCastButton", UIParent, "SecureActionButtonTemplate")
 button:RegisterForClicks("AnyUp", "AnyDown")
 button:SetAttribute("type", "spell")
@@ -37,6 +39,8 @@ end
 -- with the bobber without having to click on it. The game's "Enable Interact Key" option is turned
 -- on while fishing if it's off, and set back after.
 local interact = CreateFrame("Frame")
+-- The key bound to reel in now, or nil
+local reelInBound
 
 -- SoftTargetInteract is 0 for off, 1 for gamepad only, 2 for keyboard and mouse only and 3 for
 -- both; "Enable Interact Key" sets 3
@@ -51,22 +55,53 @@ local function BindInteract()
         savedInteractKey = current
         SetCVar("SoftTargetInteract", INTERACT_KEY_ON)
     end
-    SetOverrideBinding(interact, true, Storage.GetSetting("reelInKey"), "INTERACTTARGET")
+    reelInBound = Storage.GetSetting("reelInKey")
+    SetOverrideBinding(interact, true, reelInBound, "INTERACTTARGET")
 end
 
 local function ClearInteract()
     if InCombatLockdown() then return end
     ClearOverrideBindings(interact)
+    reelInBound = nil
     if savedInteractKey then
         SetCVar("SoftTargetInteract", savedInteractKey)
         savedInteractKey = nil
     end
 end
 
+-- The hotkey casts Fishing while a fishing pole is equipped, out of combat
+local hotkey = CreateFrame("Frame")
+-- The key bound to cast now, or nil
+local hotkeyBound
+
+-- Binds the hotkey, or clears it, to match the settings, the fishing pole and the line.
+-- Called again whenever any of them change.
+function EasyCast.UpdateHotkey()
+    if InCombatLockdown() then return end
+    local key = Storage.GetSetting("castMode") == "hotkey" and CharacterInfo.HasFishingPole()
+        and Storage.GetSetting("castKey") or nil
+    -- While the line is out the same key reels in, so one key can both cast and reel in
+    if key == reelInBound then
+        key = nil
+    end
+    if key == hotkeyBound then return end
+    ClearOverrideBindings(hotkey)
+    if key then
+        SetOverrideBindingClick(hotkey, true, key, "FishyWashyCastButton")
+    end
+    hotkeyBound = key
+end
+
+local function ClearHotkey()
+    if InCombatLockdown() then return end
+    ClearOverrideBindings(hotkey)
+    hotkeyBound = nil
+end
+
 WorldFrame:HookScript("OnMouseDown", function(_, mouseButton)
     if mouseButton ~= "RightButton" then return end
     -- Bindings can't be changed in combat; right-clicking a unit should still target or loot it
-    if not Storage.GetSetting("rightClickCast") or InCombatLockdown() or UnitExists("mouseover")
+    if Storage.GetSetting("castMode") ~= "doubleClick" or InCombatLockdown() or UnitExists("mouseover")
         or not CharacterInfo.HasFishingPole() then
         return
     end
@@ -89,7 +124,11 @@ end)
 
 local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_REGEN_DISABLED")
+events:RegisterEvent("PLAYER_REGEN_ENABLED")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
+events:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+-- Fires once the equipment is known again, e.g. after a loading screen
+events:RegisterUnitEvent("UNIT_INVENTORY_CHANGED", "player")
 -- Logging out mid-cast sets the interact key back too
 events:RegisterEvent("PLAYER_LOGOUT")
 events:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", "player")
@@ -97,13 +136,22 @@ events:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
 events:SetScript("OnEvent", function(_, event, _, _, spellID)
     if event == "UNIT_SPELLCAST_CHANNEL_START" then
         if Catches.IsFishingSpell(spellID) then BindInteract() end
+        EasyCast.UpdateHotkey()
     elseif event == "UNIT_SPELLCAST_CHANNEL_STOP" then
         ClearInteract()
+        EasyCast.UpdateHotkey()
+    elseif event == "PLAYER_EQUIPMENT_CHANGED" or event == "UNIT_INVENTORY_CHANGED"
+        or event == "PLAYER_REGEN_ENABLED" then
+        EasyCast.UpdateHotkey()
     else
         -- Don't leave the bindings behind if combat starts or a loading screen comes before
-        -- they were used
+        -- they were used; the hotkey is bound again after combat, or once the pole is known
         ClearBinding()
         ClearInteract()
+        ClearHotkey()
         lastClick = 0
+        if event == "PLAYER_ENTERING_WORLD" then
+            EasyCast.UpdateHotkey()
+        end
     end
 end)

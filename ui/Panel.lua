@@ -63,8 +63,9 @@ function Panel.CreateSmallButton(parent, text, width, onClick)
     return button
 end
 
--- Mutes a small button's red towards grey, with white text, while what it opens is showing.
--- This is separate from the hover glow, which still shows on top.
+-- Mutes a small button's red towards grey, with white text, while it's on: while what it opens
+-- is showing, or while it's the chosen option. This is separate from the hover glow, which still
+-- shows on top.
 function Panel.SetButtonActive(button, active)
     if not button.activeTint then
         -- Above the button's own background, below its text

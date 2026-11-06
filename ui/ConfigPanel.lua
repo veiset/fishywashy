@@ -1,11 +1,12 @@
 local _, ns = ...
-local Utils, Panel, Storage, Sound, Catches = ns.Utils, ns.Panel, ns.Storage, ns.Sound, ns.Catches
+local Utils, Panel, Storage, Sound, Catches, EasyCast = ns.Utils, ns.Panel, ns.Storage, ns.Sound, ns.Catches,
+    ns.EasyCast
 
 -- The settings checkboxes, the volume slider and the reset-all button.
 local ConfigPanel = {}
 ns.ConfigPanel = ConfigPanel
 
-local HEIGHT = 213
+local HEIGHT = 205
 -- Checkboxes start a little left of the text, so their labels line up with it
 local LEFT = Panel.LEFT - 2
 
@@ -79,23 +80,31 @@ local function GetKeyName(key)
     return MOUSE_BUTTON_NAMES[key] or GetBindingText(key)
 end
 
--- A button showing the key or mouse button in settingKey. Clicking it waits for a key press, or
+-- Sizes a small button to its text
+local function FitToText(button)
+    button:SetWidth(button:GetFontString():GetStringWidth() + 18)
+end
+
+-- A button for the key or mouse button in settingKey. Clicking it waits for a key press, or
 -- a click on it with another mouse button, to set instead. Escape or a left-click cancels.
-local function CreateKeyButton(parent, settingKey)
+-- Otherwise it shows getText(), or the key's name when not given; button.Refresh() shows it
+-- again. onSet, when given, is called once a key is set.
+local function CreateKeyButton(parent, settingKey, getText, onSet)
     local button = Panel.CreateSmallButton(parent, "", 0)
     button:RegisterForClicks("AnyUp")
 
     local function Show(text)
         button:SetText(text)
-        button:SetWidth(button:GetFontString():GetStringWidth() + 18)
+        FitToText(button)
     end
     local function StopListening()
         button:EnableKeyboard(false)
-        Show(GetKeyName(Storage.GetSetting(settingKey)))
+        Show(getText and getText() or GetKeyName(Storage.GetSetting(settingKey)))
     end
     local function SetKey(key)
         Storage.SetSetting(settingKey, key)
         StopListening()
+        if onSet then onSet() end
     end
 
     button:SetScript("OnClick", function(self, mouseButton)
@@ -126,8 +135,52 @@ local function CreateKeyButton(parent, settingKey)
         GameTooltip:Show()
     end)
     button:SetScript("OnLeave", GameTooltip_Hide)
+    button.Refresh = StopListening
     StopListening()
     return button
+end
+
+-- "Fishing hotkey (when rod equipped)" over [Double right-click] [Set hotkey] [None], with the
+-- chosen one lit. Set hotkey waits for a key, then shows the key in its place.
+local function CreateCastModeButtons(parent, top)
+    local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    -- On a row as tall as a checkbox's
+    label:SetPoint("LEFT", parent, "TOPLEFT", Panel.LEFT, top - 9)
+    label:SetText("Fishing hotkey " .. Utils.Color("(when rod equipped)", Utils.GREY))
+
+    local buttons = {}
+    local function Update()
+        local mode = Storage.GetSetting("castMode")
+        for buttonMode, button in pairs(buttons) do
+            Panel.SetButtonActive(button, buttonMode == mode)
+        end
+        buttons.hotkey.Refresh()
+    end
+    local function Select(mode)
+        Storage.SetSetting("castMode", mode)
+        Update()
+        EasyCast.UpdateHotkey()
+    end
+
+    buttons.doubleClick = Panel.CreateSmallButton(parent, "Double right-click", 0, function()
+        Select("doubleClick")
+    end)
+    buttons.hotkey = CreateKeyButton(parent, "castKey", function()
+        local key = Storage.GetSetting("castMode") == "hotkey" and Storage.GetSetting("castKey")
+        return key and GetKeyName(key) or "Set hotkey"
+    end, function()
+        Select("hotkey")
+    end)
+    buttons.none = Panel.CreateSmallButton(parent, "None", 0, function()
+        Select("none")
+    end)
+    FitToText(buttons.doubleClick)
+    FitToText(buttons.none)
+
+    buttons.doubleClick:SetPoint("TOPLEFT", Panel.LEFT, top - 19)
+    buttons.hotkey:SetPoint("LEFT", buttons.doubleClick, "RIGHT", 3, 0)
+    buttons.none:SetPoint("LEFT", buttons.hotkey, "RIGHT", 3, 0)
+    Update()
 end
 
 -- onLayoutChange is called when a setting changes which panels show or how tall they are
@@ -140,38 +193,43 @@ function ConfigPanel.Create(parent, stats, onLayoutChange)
     heading:SetPoint("TOPLEFT", Panel.LEFT, -5)
     heading:SetText("Config")
 
-    Panel.CreateSettingCheckbox(panel, LEFT, -19, "Fishing volume", "enabled", function()
-        if not Storage.GetSetting("enabled") then
-            Sound.Restore()
-        end
-    end)
-    CreateVolumeSlider(panel, -19)
-    -- Takes effect from the next cast
-    Panel.CreateSettingCheckbox(panel, LEFT, -39, "Sound while alt-tabbed " .. Utils.Color("(when fishing)", Utils.GREY),
-        "soundInBackground")
-    Panel.CreateSettingCheckbox(panel, LEFT, -59, "Double right-click to cast " .. Utils.Color("(when rod equipped)", Utils.GREY),
-        "rightClickCast")
+    -- Casting and reeling in first, a little below the heading. Two rows: the label, then the
+    -- buttons.
+    CreateCastModeButtons(panel, -25)
     -- "Reel in with [Right-click] (no need to aim)"
-    local _, reelInLabel = Panel.CreateSettingCheckbox(panel, LEFT, -79, "Reel in with", "reelIn")
+    local _, reelInLabel = Panel.CreateSettingCheckbox(panel, LEFT, -65, "Reel in with", "reelIn")
     local reelInKey = CreateKeyButton(panel, "reelInKey")
     reelInKey:SetPoint("LEFT", reelInLabel, "RIGHT", 4, 0)
     local reelInHint = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     reelInHint:SetPoint("LEFT", reelInKey, "RIGHT", 4, 0)
     reelInHint:SetText(Utils.Color("(no need to aim)", Utils.GREY))
 
-    Panel.CreateSettingCheckbox(panel, LEFT, -99, "Include unsuccessful in stats", "statsIncludeMissed", function()
+    -- The rest, set a little apart from casting and reeling in
+    Panel.CreateSettingCheckbox(panel, LEFT, -93, "Fishing volume", "enabled", function()
+        if not Storage.GetSetting("enabled") then
+            Sound.Restore()
+        end
+    end)
+    CreateVolumeSlider(panel, -93)
+    -- Takes effect from the next cast
+    Panel.CreateSettingCheckbox(panel, LEFT, -113, "Sound while alt-tabbed " .. Utils.Color("(when fishing)", Utils.GREY),
+        "soundInBackground")
+    Panel.CreateSettingCheckbox(panel, LEFT, -133, "Include unsuccessful in stats", "statsIncludeMissed", function()
         -- The unsuccessful row changes the stats' height
         stats.Refresh()
         onLayoutChange()
     end)
-
-    -- Which panels to show, set a little apart from the other options
-    Panel.CreateSettingCheckbox(panel, LEFT, -127, "Show stats", "showStats", onLayoutChange)
-    Panel.CreateSettingCheckbox(panel, LEFT, -147, "Show zones", "showZones", onLayoutChange)
-    Panel.CreateSettingCheckbox(panel, LEFT, -167, "Show history", "showHistory", onLayoutChange)
+    -- "Show stats  Show zones  Show history" on one row, set a little apart
+    local _, previous = Panel.CreateSettingCheckbox(panel, LEFT, -159, "Show stats", "showStats", onLayoutChange)
+    for _, show in ipairs({ { "Show zones", "showZones" }, { "Show history", "showHistory" } }) do
+        local check, label = Panel.CreateSettingCheckbox(panel, 0, 0, show[1], show[2], onLayoutChange)
+        check:ClearAllPoints()
+        check:SetPoint("LEFT", previous, "RIGHT", 6, 0)
+        previous = label
+    end
 
     local resetAll = Panel.CreatePopupButton(panel, "Reset all data", 100, "FISHYWASHY_RESET_ALL")
-    resetAll:SetPoint("TOPLEFT", Panel.LEFT, -189)
+    resetAll:SetPoint("TOPLEFT", Panel.LEFT, -181)
 
     return panel
 end

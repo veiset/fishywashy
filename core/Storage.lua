@@ -10,7 +10,9 @@ local DEFAULTS = {
     enabled = true,
     volume = 0.85,
     soundInBackground = true,
-    rightClickCast = true,
+    -- How to cast Fishing while a fishing pole is equipped: "doubleClick" (right-click),
+    -- "hotkey" (castKey) or "none"
+    castMode = "doubleClick",
     reelIn = true,
     reelInKey = "BUTTON2",
     showStats = true,
@@ -91,6 +93,11 @@ function Storage.Init()
     FishyWashyDB = FishyWashyDB or { version = SCHEMA_VERSION }
     db = FishyWashyDB
     db.settings = db.settings or {}
+    -- Up to 1.1.0 a checkbox turned double right-click to cast on and off
+    if db.settings.rightClickCast == false and db.settings.castMode == nil then
+        db.settings.castMode = "none"
+    end
+    db.settings.rightClickCast = nil
     db.catches = db.catches or {}
     db.casts = db.casts or {}
 
