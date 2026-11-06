@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- The same as 1.2.0, released again because 1.2.0 didn't reach CurseForge's release channel
+
 ## 1.2.0
 
 - Fishing hotkey: cast Fishing with a double right-click, with a key of your choice, or not at all. Choose it at the top of the config. With the same key as reel in, one key both casts and reels in
