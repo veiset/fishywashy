@@ -6,7 +6,7 @@ local Utils, Panel, Storage, Sound, Catches, EasyCast = ns.Utils, ns.Panel, ns.S
 local ConfigPanel = {}
 ns.ConfigPanel = ConfigPanel
 
-local HEIGHT = 205
+local HEIGHT = 225
 -- Checkboxes start a little left of the text, so their labels line up with it
 local LEFT = Panel.LEFT - 2
 
@@ -196,8 +196,10 @@ function ConfigPanel.Create(parent, stats, onLayoutChange)
     -- Casting and reeling in first, a little below the heading. Two rows: the label, then the
     -- buttons.
     CreateCastModeButtons(panel, -25)
+    Panel.CreateSettingCheckbox(panel, LEFT, -65, "Auto apply bait " .. Utils.Color("(with fishing hotkey)", Utils.GREY),
+        "autoBait")
     -- "Reel in with [Right-click] (no need to aim)"
-    local _, reelInLabel = Panel.CreateSettingCheckbox(panel, LEFT, -65, "Reel in with", "reelIn")
+    local _, reelInLabel = Panel.CreateSettingCheckbox(panel, LEFT, -85, "Reel in with", "reelIn")
     local reelInKey = CreateKeyButton(panel, "reelInKey")
     reelInKey:SetPoint("LEFT", reelInLabel, "RIGHT", 4, 0)
     local reelInHint = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -205,22 +207,22 @@ function ConfigPanel.Create(parent, stats, onLayoutChange)
     reelInHint:SetText(Utils.Color("(no need to aim)", Utils.GREY))
 
     -- The rest, set a little apart from casting and reeling in
-    Panel.CreateSettingCheckbox(panel, LEFT, -93, "Fishing volume", "enabled", function()
+    Panel.CreateSettingCheckbox(panel, LEFT, -113, "Fishing volume", "enabled", function()
         if not Storage.GetSetting("enabled") then
             Sound.Restore()
         end
     end)
-    CreateVolumeSlider(panel, -93)
+    CreateVolumeSlider(panel, -113)
     -- Takes effect from the next cast
-    Panel.CreateSettingCheckbox(panel, LEFT, -113, "Sound while alt-tabbed " .. Utils.Color("(when fishing)", Utils.GREY),
+    Panel.CreateSettingCheckbox(panel, LEFT, -133, "Sound while alt-tabbed " .. Utils.Color("(when fishing)", Utils.GREY),
         "soundInBackground")
-    Panel.CreateSettingCheckbox(panel, LEFT, -133, "Include unsuccessful in stats", "statsIncludeMissed", function()
+    Panel.CreateSettingCheckbox(panel, LEFT, -153, "Include unsuccessful in stats", "statsIncludeMissed", function()
         -- The unsuccessful row changes the stats' height
         stats.Refresh()
         onLayoutChange()
     end)
     -- "Show stats  Show zones  Show history" on one row, set a little apart
-    local _, previous = Panel.CreateSettingCheckbox(panel, LEFT, -159, "Show stats", "showStats", onLayoutChange)
+    local _, previous = Panel.CreateSettingCheckbox(panel, LEFT, -179, "Show stats", "showStats", onLayoutChange)
     for _, show in ipairs({ { "Show zones", "showZones" }, { "Show history", "showHistory" } }) do
         local check, label = Panel.CreateSettingCheckbox(panel, 0, 0, show[1], show[2], onLayoutChange)
         check:ClearAllPoints()
@@ -229,7 +231,7 @@ function ConfigPanel.Create(parent, stats, onLayoutChange)
     end
 
     local resetAll = Panel.CreatePopupButton(panel, "Reset all data", 100, "FISHYWASHY_RESET_ALL")
-    resetAll:SetPoint("TOPLEFT", Panel.LEFT, -181)
+    resetAll:SetPoint("TOPLEFT", Panel.LEFT, -201)
 
     return panel
 end

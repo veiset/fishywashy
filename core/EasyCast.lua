@@ -1,5 +1,5 @@
 local _, ns = ...
-local Config, Storage, CharacterInfo, Catches = ns.Config, ns.Storage, ns.CharacterInfo, ns.Catches
+local Config, Storage, CharacterInfo, Catches, Bait = ns.Config, ns.Storage, ns.CharacterInfo, ns.Catches, ns.Bait
 
 -- Cast Fishing with a double right-click on the world or with a hotkey while a fishing pole is
 -- equipped, and reel in with a key or mouse button, right-click by default, while fishing.
@@ -12,7 +12,28 @@ local button = CreateFrame("Button", "FishyWashyCastButton", UIParent, "SecureAc
 button:RegisterForClicks("AnyUp", "AnyDown")
 button:SetAttribute("type", "spell")
 button:SetAttribute("spell", Catches.FISHING)
+
+-- The bait this click applies instead of casting, or nil
+local baitToApply
+
+-- With auto bait on and no bait applied, the click applies the strongest bait in the bags
+-- instead, and the next one casts. Attributes can only change out of combat, which is also the
+-- only time the double-click and the hotkey are bound.
+button:SetScript("PreClick", function(self)
+    if InCombatLockdown() then return end
+    baitToApply = Storage.GetSetting("autoBait") and not Bait.GetTimeLeft() and Bait.GetBest() or nil
+    if baitToApply then
+        self:SetAttribute("type", "macro")
+        self:SetAttribute("macrotext", Bait.GetApplyMacro(baitToApply))
+    else
+        self:SetAttribute("type", "spell")
+    end
+end)
 button:SetScript("PostClick", function(self)
+    -- Counted once the bait actually leaves the bags
+    if baitToApply then
+        Bait.WatchForUse(baitToApply)
+    end
     if not InCombatLockdown() then
         ClearOverrideBindings(self)
     end

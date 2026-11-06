@@ -13,6 +13,8 @@ local DEFAULTS = {
     -- How to cast Fishing while a fishing pole is equipped: "doubleClick" (right-click),
     -- "hotkey" (castKey) or "none"
     castMode = "doubleClick",
+    -- Casting applies bait instead when none is applied
+    autoBait = true,
     reelIn = true,
     reelInKey = "BUTTON2",
     showStats = true,

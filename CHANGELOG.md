@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+
+- Auto apply bait: with no bait on the fishing pole, the fishing hotkey applies the strongest bait in your bags first, and the next press casts. On by default; turn it off in the config
+
 ## 1.2.1
 
 - The same as 1.2.0, released again because 1.2.0 didn't reach CurseForge's release channel

@@ -1,6 +1,3 @@
-## 1.2.1
+## 1.3.0
 
-- Fishing hotkey: cast Fishing with a double right-click, with a key of your choice, or not at all. Choose it at the top of the config. With the same key as reel in, one key both casts and reels in
-- The config is reordered: casting and reeling in first, then sound and stats, with the Show options on one row
-
-These are the 1.2.0 changes, which did not reach CurseForge as a release.
+- Auto apply bait: with no bait on the fishing pole, the fishing hotkey applies the strongest bait in your bags first, and the next press casts. On by default; turn it off in the config

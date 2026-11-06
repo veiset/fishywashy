@@ -1,5 +1,5 @@
 local _, ns = ...
-local Utils, Storage, CharacterInfo = ns.Utils, ns.Storage, ns.CharacterInfo
+local Utils, Config, Storage, CharacterInfo = ns.Utils, ns.Config, ns.Storage, ns.CharacterInfo
 
 -- Bait (fishing lures) is applied as a temporary enchant on the fishing pole.
 local Bait = {}
@@ -38,6 +38,15 @@ function Bait.WatchForUse(itemID)
         watching[itemID] = nil
         ticker:Cancel()
     end)
+end
+
+-- The strongest bait in the bags, from Config.BAIT_ITEMS, or nil when there's none
+function Bait.GetBest()
+    for _, itemID in ipairs(Config.BAIT_ITEMS) do
+        if GetItemCount(itemID) > 0 then
+            return itemID
+        end
+    end
 end
 
 -- Seconds left on the bait, or nil when none is applied.
