@@ -16,8 +16,8 @@ button:SetAttribute("spell", Catches.FISHING)
 -- The bait this click applies instead of casting, or nil
 local baitToApply
 
--- With auto bait on and no bait applied, the click applies the strongest bait in the bags
--- instead, and the next one casts. Attributes can only change out of combat, which is also the
+-- With auto bait on and no bait applied, the click applies the strongest bait in the bags that
+-- the fishing skill allows instead, and the next one casts. Attributes can only change out of combat, which is also the
 -- only time the double-click and the hotkey are bound.
 button:SetScript("PreClick", function(self)
     if InCombatLockdown() then return end

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- Auto apply bait skips bait your fishing skill is too low for, and applies the strongest one you can use. Before, the fishing hotkey kept trying to apply such bait and never cast
+
 ## 1.3.0
 
 - Auto apply bait: with no bait on the fishing pole, the fishing hotkey applies the strongest bait in your bags first, and the next press casts. On by default; turn it off in the config

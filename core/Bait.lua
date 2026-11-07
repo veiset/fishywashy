@@ -40,10 +40,29 @@ function Bait.WatchForUse(itemID)
     end)
 end
 
--- The strongest bait in the bags, from Config.BAIT_ITEMS, or nil when there's none
+-- The game's red, which item tooltips use for requirements the character doesn't meet
+local function IsRed(color)
+    return color and color.r > 0.99 and color.g < 0.2 and color.b < 0.2
+end
+
+-- Whether the character can use the bait yet: most need some fishing skill, such as "Requires
+-- Fishing (100)". The game shows that line in red until the skill is high enough, which works
+-- in any language. Assumed usable when the tooltip can't be read.
+function Bait.CanUse(itemID)
+    local tooltip = C_TooltipInfo and C_TooltipInfo.GetItemByID(itemID)
+    for _, line in ipairs(tooltip and tooltip.lines or {}) do
+        if line.leftText and IsRed(line.leftColor) then
+            return false
+        end
+    end
+    return true
+end
+
+-- The strongest bait in the bags that the character can use, from Config.BAIT_ITEMS, or nil
+-- when there's none
 function Bait.GetBest()
     for _, itemID in ipairs(Config.BAIT_ITEMS) do
-        if GetItemCount(itemID) > 0 then
+        if GetItemCount(itemID) > 0 and Bait.CanUse(itemID) then
             return itemID
         end
     end
