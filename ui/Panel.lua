@@ -11,6 +11,10 @@ local ROW_HEIGHT = 16
 local HEADER_HEIGHT = 21
 local GAP = 6
 local EXTRA_WIDTH = 60
+-- The scroll bar of a panel with more rows than it shows: a thin bar at the right edge
+local SCROLL_BAR_WIDTH = 4
+local SCROLL_BAR_RIGHT = -3
+local MIN_THUMB_HEIGHT = 8
 -- Where text starts from the left edge in the main window's panels
 Panel.LEFT = 9
 local MISSED_ICON = "Interface/Icons/Trade_Fishing"
@@ -172,6 +176,8 @@ local function GetRow(self, i)
             GameTooltip:Show()
         end)
         hover:SetScript("OnLeave", GameTooltip_Hide)
+        -- The mouse wheel scrolls the panel over rows with a tooltip too
+        hover:SetScript("OnMouseWheel", function(_, delta) self:Scroll(delta) end)
 
         -- Faint background on every other row, for panels that ask for it
         local stripe = self:CreateTexture(nil, "BACKGROUND")
@@ -247,23 +253,65 @@ function PanelMethods:SetSubheadingsShown(shown)
     UpdateHeight(self)
 end
 
--- Fills the panel with one row per entry. format(entry) returns the item and value text, and
--- optionally text for an extra column to the right of the value. The optional tooltip(entry)
--- fills GameTooltip when a row is hovered.
-function PanelMethods:SetEntries(entries, format, tooltip)
-    self.tooltip = tooltip
-    local texts, hasExtra = {}, false
-    for i, entry in ipairs(entries) do
-        texts[i] = { format(entry) }
-        hasExtra = hasExtra or texts[i][3] ~= nil
-    end
+-- Shows at most maxRows rows, with a scroll bar and the mouse wheel to scroll through the rest.
+-- Scrolls back to the top whenever the panel is shown again, such as when the window reopens.
+function PanelMethods:SetMaxRows(maxRows)
+    self.maxRows = maxRows
+    self:HookScript("OnShow", function()
+        self.offset = 0
+        self:Render()
+    end)
+end
+
+-- Scrolls up for a positive delta and down for a negative one, a row per step, as the mouse
+-- wheel does
+function PanelMethods:Scroll(delta)
+    self.offset = self.offset - delta
+    self:Render()
+end
+
+local function CreateScrollBar(self)
+    local bar = CreateFrame("Slider", nil, self)
+    -- Above the rows' tooltip areas, which it overlaps
+    bar:SetFrameLevel(self:GetFrameLevel() + 5)
+    bar:SetOrientation("VERTICAL")
+    bar:SetWidth(SCROLL_BAR_WIDTH)
+    bar:SetPoint("TOPRIGHT", self.body, "TOPRIGHT", SCROLL_BAR_RIGHT, 2)
+    local track = bar:CreateTexture(nil, "BACKGROUND")
+    track:SetAllPoints()
+    track:SetColorTexture(1, 1, 1, 0.08)
+    local thumb = bar:CreateTexture(nil, "OVERLAY")
+    thumb:SetColorTexture(1, 1, 1, 0.35)
+    thumb:SetWidth(SCROLL_BAR_WIDTH)
+    bar:SetThumbTexture(thumb)
+    bar:SetValueStep(1)
+    bar:SetObeyStepOnDrag(true)
+    bar:SetScript("OnValueChanged", function(_, value)
+        if self.rendering then return end
+        self.offset = math.floor(value + 0.5)
+        self:Render()
+    end)
+    bar:EnableMouseWheel(true)
+    bar:SetScript("OnMouseWheel", function(_, delta) self:Scroll(delta) end)
+    bar:Hide()
+    self.scrollBar = bar
+    return bar
+end
+
+-- Shows the rows from the scroll position, and the scroll bar when not all of them fit
+function PanelMethods:Render()
+    local texts, entries = self.texts, self.entries
+    local total = #texts
+    local shown = self.maxRows and math.min(total, self.maxRows) or total
+    local maxOffset = total - shown
+    self.offset = math.max(0, math.min(self.offset, maxOffset))
+    local scrollable = maxOffset > 0
+
     -- The value sits at the right edge, or left of the extra column when there is one
-    local valueRight = hasExtra and -(10 + EXTRA_WIDTH + 6) or -10
-    -- Stripes alternate between plain rows; rows marked heading are never striped and start
-    -- the alternation again
-    local stripeIndex = 0
-    for i, text in ipairs(texts) do
-        local row = GetRow(self, i)
+    local valueRight = self.hasExtra and -(10 + EXTRA_WIDTH + 6) or -10
+    for i = 1, shown do
+        local index = self.offset + i
+        local text, row = texts[index], GetRow(self, i)
         row.value:SetPoint("TOPRIGHT", self.body, "TOPRIGHT", valueRight, row.y)
         if self.valueWidth then
             row.value:SetWidth(self.valueWidth)
@@ -273,26 +321,64 @@ function PanelMethods:SetEntries(entries, format, tooltip)
         row.item:SetText(text[1])
         row.value:SetText(text[2])
         row.extra:SetText(text[3] or "")
-        row.hover.entry = entries[i]
-        row.hover:EnableMouse(tooltip ~= nil)
-        if entries[i].heading then
-            stripeIndex = 0
-            row.stripe:Hide()
-        else
-            stripeIndex = stripeIndex + 1
-            row.stripe:SetShown(self.striped and stripeIndex % 2 == 0)
-        end
+        row.hover.entry = entries[index]
+        row.hover:EnableMouse(self.tooltip ~= nil)
+        row.hover:EnableMouseWheel(scrollable)
+        row.stripe:SetShown(self.stripes[index])
     end
-    for i = #entries + 1, #self.rows do
+    for i = shown + 1, #self.rows do
         self.rows[i].item:SetText("")
         self.rows[i].value:SetText("")
         self.rows[i].extra:SetText("")
         self.rows[i].hover:EnableMouse(false)
+        self.rows[i].hover:EnableMouseWheel(false)
         self.rows[i].stripe:Hide()
     end
-    self.empty:SetShown(#entries == 0)
-    self.rowCount = #entries
+
+    -- Only take the mouse wheel when there's something to scroll, so it zooms the camera
+    -- otherwise
+    self:EnableMouseWheel(scrollable)
+    if scrollable or self.scrollBar then
+        local bar = self.scrollBar or CreateScrollBar(self)
+        bar:SetShown(scrollable)
+        if scrollable then
+            local height = shown * ROW_HEIGHT - 2
+            bar:SetHeight(height)
+            bar:GetThumbTexture():SetHeight(math.max(MIN_THUMB_HEIGHT, height * shown / total))
+            self.rendering = true
+            bar:SetMinMaxValues(0, maxOffset)
+            bar:SetValue(self.offset)
+            self.rendering = false
+        end
+    end
+
+    self.empty:SetShown(total == 0)
+    self.rowCount = shown
     UpdateHeight(self)
+end
+
+-- Fills the panel with one row per entry. format(entry) returns the item and value text, and
+-- optionally text for an extra column to the right of the value. The optional tooltip(entry)
+-- fills GameTooltip when a row is hovered. The scroll position is kept.
+function PanelMethods:SetEntries(entries, format, tooltip)
+    self.tooltip = tooltip
+    self.entries = entries
+    self.texts, self.stripes, self.hasExtra = {}, {}, false
+    -- Stripes alternate between plain rows; rows marked heading are never striped and start
+    -- the alternation again
+    local stripeIndex = 0
+    for i, entry in ipairs(entries) do
+        self.texts[i] = { format(entry) }
+        self.hasExtra = self.hasExtra or self.texts[i][3] ~= nil
+        if entry.heading then
+            stripeIndex = 0
+            self.stripes[i] = false
+        else
+            stripeIndex = stripeIndex + 1
+            self.stripes[i] = self.striped and stripeIndex % 2 == 0 or false
+        end
+    end
+    self:Render()
 end
 
 -- left is how far the text starts from the left edge, Panel.LEFT unless given
@@ -332,6 +418,11 @@ function Panel.Create(parent, title, emptyMessage, subheadingCount, left)
 
     panel.rows = {}
     panel.rowCount = 0
+    panel.offset = 0
+    panel.texts, panel.entries, panel.stripes = {}, {}, {}
+    panel:SetScript("OnMouseWheel", function(_, delta) panel:Scroll(delta) end)
+    -- Taken only while there's something to scroll
+    panel:EnableMouseWheel(false)
     panel:SetSubheadingsShown(true)
     return panel
 end

@@ -45,5 +45,8 @@ Config.LEVITATE_REFRESH = 25
 -- so time logged out or away doesn't lower the fish per hour
 Config.FISHING_BREAK = 300
 
+-- Most rows the Stats panel shows; scroll for the rest
+Config.STATS_ROWS = 7
+
 -- Number of rows in the History panel
 Config.RECENT_CATCHES = 5

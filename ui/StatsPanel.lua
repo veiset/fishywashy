@@ -1,5 +1,6 @@
 local _, ns = ...
-local Utils, Panel, Storage, Catches, Stats = ns.Utils, ns.Panel, ns.Storage, ns.Catches, ns.Stats
+local Utils, Config, Panel, Storage, Catches, Stats = ns.Utils, ns.Config, ns.Panel, ns.Storage, ns.Catches,
+    ns.Stats
 
 -- Totals, rates and the share of each item caught.
 local StatsPanel = {}
@@ -7,6 +8,7 @@ ns.StatsPanel = StatsPanel
 
 function StatsPanel.Create(parent)
     local panel = Panel.Create(parent, "Stats", "No fish caught yet", 3)
+    panel:SetMaxRows(Config.STATS_ROWS)
     local caught = 0
 
     -- Per hour over the whole session, then per hour spent fishing, which leaves out breaks

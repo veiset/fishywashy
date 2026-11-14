@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+- The Stats list shows at most 7 items, so the window no longer grows down the screen. Scroll through the rest with the mouse wheel or the small scroll bar at its right edge. It's back at the top whenever the window is opened again
+
 ## 1.4.0
 
 - Auto loot while fishing: while a fishing pole is equipped, the game's Auto Loot is on or off as chosen in the config, whatever your own Auto Loot setting is. It's set back to your own setting when you unequip the pole or log out. On by default
