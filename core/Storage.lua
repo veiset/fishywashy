@@ -15,11 +15,17 @@ local DEFAULTS = {
     castMode = "doubleClick",
     -- Casting applies bait instead when none is applied
     autoBait = true,
+    -- Priests only: casting casts Levitate again instead when it's about to run out
+    autoLevitate = false,
+    -- While a fishing pole is equipped, the game's Auto Loot is on when true and off when false
+    autoLoot = true,
     reelIn = true,
     reelInKey = "BUTTON2",
     showStats = true,
     statsIncludeMissed = false,
     showAdvancedStats = false,
+    -- The main window's background, from 0 (see-through) to 1 (solid)
+    windowOpacity = 0.5,
     showConfig = true,
     showZones = false,
     showHistory = true,
@@ -135,6 +141,16 @@ function Storage.SetSoundBackup(backup)
     db.soundBackup = backup
 end
 
+-- The player's own Auto Loot setting, kept while it's turned on for fishing so it survives a
+-- logout or crash.
+function Storage.GetAutoLootBackup()
+    return db.autoLootBackup
+end
+
+function Storage.SetAutoLootBackup(backup)
+    db.autoLootBackup = backup
+end
+
 -- Every fishing catch this session, oldest first: { itemID, link, icon, quantity, time, zone, subzone }.
 -- Also counted in the all-time totals.
 function Storage.AddCatch(catch)
@@ -173,7 +189,8 @@ end
 
 -- Deletes all catches, casts and all-time totals; the settings are kept
 function Storage.ClearAll()
-    FishyWashyDB = { version = SCHEMA_VERSION, settings = db.settings, soundBackup = db.soundBackup }
+    FishyWashyDB = { version = SCHEMA_VERSION, settings = db.settings, soundBackup = db.soundBackup,
+        autoLootBackup = db.autoLootBackup }
     Storage.Init()
 end
 

@@ -1,8 +1,10 @@
 local _, ns = ...
-local Config, Storage, CharacterInfo, Catches, Bait = ns.Config, ns.Storage, ns.CharacterInfo, ns.Catches, ns.Bait
+local Config, Storage, CharacterInfo, Catches, Bait, Levitate = ns.Config, ns.Storage, ns.CharacterInfo,
+    ns.Catches, ns.Bait, ns.Levitate
 
 -- Cast Fishing with a double right-click on the world or with a hotkey while a fishing pole is
--- equipped, and reel in with a key or mouse button, right-click by default, while fishing.
+-- equipped, applying bait and recasting Levitate first when turned on, and reel in with a key
+-- or mouse button, right-click by default, while fishing.
 local EasyCast = {}
 ns.EasyCast = EasyCast
 
@@ -16,17 +18,27 @@ button:SetAttribute("spell", Catches.FISHING)
 -- The bait this click applies instead of casting, or nil
 local baitToApply
 
--- With auto bait on and no bait applied, the click applies the strongest bait in the bags that
--- the fishing skill allows instead, and the next one casts. Attributes can only change out of combat, which is also the
--- only time the double-click and the hotkey are bound.
+-- Each click does the first of these that's needed, so the next click does the next one:
+-- casts Levitate again when auto recast is on and it's about to run out, applies the
+-- strongest bait in the bags that the fishing skill allows when auto bait is on and none is
+-- applied, or casts Fishing. Attributes can only change out of combat, which is also the only
+-- time the double-click and the hotkey are bound.
 button:SetScript("PreClick", function(self)
     if InCombatLockdown() then return end
-    baitToApply = Storage.GetSetting("autoBait") and not Bait.GetTimeLeft() and Bait.GetBest() or nil
+    baitToApply = nil
+    local spell, unit = Catches.FISHING, nil
+    if Storage.GetSetting("autoLevitate") and Levitate.NeedsRecast() then
+        spell, unit = Levitate.NAME, "player"
+    elseif Storage.GetSetting("autoBait") and not Bait.GetTimeLeft() then
+        baitToApply = Bait.GetBest()
+    end
     if baitToApply then
         self:SetAttribute("type", "macro")
         self:SetAttribute("macrotext", Bait.GetApplyMacro(baitToApply))
     else
         self:SetAttribute("type", "spell")
+        self:SetAttribute("spell", spell)
+        self:SetAttribute("unit", unit)
     end
 end)
 button:SetScript("PostClick", function(self)

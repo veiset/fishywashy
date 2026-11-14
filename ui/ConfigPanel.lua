@@ -1,12 +1,15 @@
 local _, ns = ...
-local Utils, Panel, Storage, Sound, Catches, EasyCast = ns.Utils, ns.Panel, ns.Storage, ns.Sound, ns.Catches,
-    ns.EasyCast
+local Utils, Panel, Storage, Sound, Catches, EasyCast, Levitate, AutoLoot = ns.Utils, ns.Panel, ns.Storage,
+    ns.Sound, ns.Catches, ns.EasyCast, ns.Levitate, ns.AutoLoot
 
--- The settings checkboxes, the volume slider and the reset-all button.
+-- The settings checkboxes, the volume and opacity sliders and the reset-all button.
 local ConfigPanel = {}
 ns.ConfigPanel = ConfigPanel
 
-local HEIGHT = 225
+-- Without the Levitate row, which adds a row
+local HEIGHT = 265
+-- The space between two rows of checkboxes
+local ROW = 20
 -- Checkboxes start a little left of the text, so their labels line up with it
 local LEFT = Panel.LEFT - 2
 
@@ -21,8 +24,9 @@ StaticPopupDialogs["FISHYWASHY_RESET_ALL"] = {
     preferredIndex = 3,
 }
 
--- Right-aligned on the checkbox row starting at top, with the value at the right edge
-local function CreateVolumeSlider(parent, top)
+-- A slider from 0% to 100% for settingKey, right-aligned on the checkbox row starting at top,
+-- with the value at the right edge. onChange is called with each new value.
+local function CreatePercentSlider(parent, top, settingKey, onChange)
     local valueText = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     -- Checkboxes are 18 high, so the row's middle is 9 below its top
     valueText:SetPoint("RIGHT", parent, "TOPRIGHT", -10, top - 9)
@@ -49,13 +53,13 @@ local function CreateVolumeSlider(parent, top)
         valueText:SetText(math.floor(value * 100 + 0.5) .. "%")
     end
 
-    local volume = Storage.GetSetting("volume")
-    slider:SetValue(volume)
-    ShowValue(volume)
+    local current = Storage.GetSetting(settingKey)
+    slider:SetValue(current)
+    ShowValue(current)
     slider:SetScript("OnValueChanged", function(_, value)
-        Storage.SetSetting("volume", value)
+        Storage.SetSetting(settingKey, value)
         ShowValue(value)
-        Sound.UpdateVolume()
+        onChange(value)
     end)
 end
 
@@ -198,40 +202,78 @@ function ConfigPanel.Create(parent, stats, onLayoutChange)
     CreateCastModeButtons(panel, -25)
     Panel.CreateSettingCheckbox(panel, LEFT, -65, "Auto apply bait " .. Utils.Color("(with fishing hotkey)", Utils.GREY),
         "autoBait")
+    -- Only for priests of the level to learn Levitate, so in a row of its own that can be hidden
+    local levitateRow = CreateFrame("Frame", nil, panel)
+    levitateRow:SetPoint("TOPLEFT", 0, -85)
+    levitateRow:SetPoint("TOPRIGHT", 0, -85)
+    levitateRow:SetHeight(ROW)
+    Panel.CreateSettingCheckbox(levitateRow, LEFT, 0,
+        "Auto recast Levitate " .. Utils.Color("(with fishing hotkey)", Utils.GREY), "autoLevitate")
+
+    -- The rows below, moved down a row while the Levitate row shows. Their offsets are as if
+    -- it doesn't.
+    local rest = CreateFrame("Frame", nil, panel)
+    rest:SetHeight(HEIGHT)
+
     -- "Reel in with [Right-click] (no need to aim)"
-    local _, reelInLabel = Panel.CreateSettingCheckbox(panel, LEFT, -85, "Reel in with", "reelIn")
-    local reelInKey = CreateKeyButton(panel, "reelInKey")
+    local _, reelInLabel = Panel.CreateSettingCheckbox(rest, LEFT, -85, "Reel in with", "reelIn")
+    local reelInKey = CreateKeyButton(rest, "reelInKey")
     reelInKey:SetPoint("LEFT", reelInLabel, "RIGHT", 4, 0)
-    local reelInHint = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    local reelInHint = rest:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     reelInHint:SetPoint("LEFT", reelInKey, "RIGHT", 4, 0)
     reelInHint:SetText(Utils.Color("(no need to aim)", Utils.GREY))
+    Panel.CreateSettingCheckbox(rest, LEFT, -105, "Auto loot " .. Utils.Color("(when rod equipped)", Utils.GREY),
+        "autoLoot", AutoLoot.Update)
 
     -- The rest, set a little apart from casting and reeling in
-    Panel.CreateSettingCheckbox(panel, LEFT, -113, "Fishing volume", "enabled", function()
+    Panel.CreateSettingCheckbox(rest, LEFT, -133, "Fishing volume", "enabled", function()
         if not Storage.GetSetting("enabled") then
             Sound.Restore()
         end
     end)
-    CreateVolumeSlider(panel, -113)
+    CreatePercentSlider(rest, -133, "volume", Sound.UpdateVolume)
     -- Takes effect from the next cast
-    Panel.CreateSettingCheckbox(panel, LEFT, -133, "Sound while alt-tabbed " .. Utils.Color("(when fishing)", Utils.GREY),
+    Panel.CreateSettingCheckbox(rest, LEFT, -153, "Sound while alt-tabbed " .. Utils.Color("(when fishing)", Utils.GREY),
         "soundInBackground")
-    Panel.CreateSettingCheckbox(panel, LEFT, -153, "Include unsuccessful in stats", "statsIncludeMissed", function()
+    -- "Window opacity", lined up with the checkbox labels, and its slider
+    local opacityLabel = rest:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    opacityLabel:SetPoint("LEFT", rest, "TOPLEFT", Panel.LEFT, -173 - 9)
+    opacityLabel:SetText("Window opacity")
+    CreatePercentSlider(rest, -173, "windowOpacity", Panel.UpdateWindowOpacity)
+    Panel.CreateSettingCheckbox(rest, LEFT, -193, "Include unsuccessful in stats", "statsIncludeMissed", function()
         -- The unsuccessful row changes the stats' height
         stats.Refresh()
         onLayoutChange()
     end)
     -- "Show stats  Show zones  Show history" on one row, set a little apart
-    local _, previous = Panel.CreateSettingCheckbox(panel, LEFT, -179, "Show stats", "showStats", onLayoutChange)
+    local _, previous = Panel.CreateSettingCheckbox(rest, LEFT, -219, "Show stats", "showStats", onLayoutChange)
     for _, show in ipairs({ { "Show zones", "showZones" }, { "Show history", "showHistory" } }) do
-        local check, label = Panel.CreateSettingCheckbox(panel, 0, 0, show[1], show[2], onLayoutChange)
+        local check, label = Panel.CreateSettingCheckbox(rest, 0, 0, show[1], show[2], onLayoutChange)
         check:ClearAllPoints()
         check:SetPoint("LEFT", previous, "RIGHT", 6, 0)
         previous = label
     end
 
-    local resetAll = Panel.CreatePopupButton(panel, "Reset all data", 100, "FISHYWASHY_RESET_ALL")
-    resetAll:SetPoint("TOPLEFT", Panel.LEFT, -201)
+    local resetAll = Panel.CreatePopupButton(rest, "Reset all data", 100, "FISHYWASHY_RESET_ALL")
+    resetAll:SetPoint("TOPLEFT", Panel.LEFT, -241)
+
+    -- Shows the Levitate row once the character can learn it. The new height lays the window
+    -- out again.
+    local function UpdateLevitateRow(level)
+        local shown = Levitate.IsAvailable(level)
+        levitateRow:SetShown(shown)
+        local top = shown and -ROW or 0
+        rest:SetPoint("TOPLEFT", 0, top)
+        rest:SetPoint("TOPRIGHT", 0, top)
+        panel:SetHeight(HEIGHT + (shown and ROW or 0))
+    end
+    UpdateLevitateRow()
+    local events = CreateFrame("Frame")
+    events:RegisterEvent("PLAYER_ENTERING_WORLD")
+    events:RegisterEvent("PLAYER_LEVEL_UP")
+    events:SetScript("OnEvent", function(_, event, level)
+        UpdateLevitateRow(event == "PLAYER_LEVEL_UP" and level or nil)
+    end)
 
     return panel
 end

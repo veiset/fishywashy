@@ -15,16 +15,31 @@ local EXTRA_WIDTH = 60
 Panel.LEFT = 9
 local MISSED_ICON = "Interface/Icons/Trade_Fishing"
 
--- The dark, see-through tooltip-style background and border both windows use
-function Panel.ApplyWindowBackdrop(frame, backgroundAlpha)
+-- Every window with the window backdrop, so the opacity setting can change them all
+local windows = {}
+
+-- The dark, see-through tooltip-style background and border both windows use, as solid as the
+-- windowOpacity setting. The background is a plain white texture tinted black, so opacity 1 is
+-- fully solid; the tooltip background texture is a little see-through even at full alpha.
+function Panel.ApplyWindowBackdrop(frame)
+    table.insert(windows, frame)
     frame:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+        bgFile = "Interface/Buttons/WHITE8X8",
         edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
         edgeSize = 12,
         insets = { left = 3, right = 3, top = 3, bottom = 3 },
     })
-    frame:SetBackdropColor(0, 0, 0, backgroundAlpha)
+    frame:SetBackdropColor(0, 0, 0, Storage.GetSetting("windowOpacity"))
     frame:SetBackdropBorderColor(1, 1, 1, 0.6)
+end
+
+-- Sets every window's background to the windowOpacity setting, from 0 (see-through) to 1; the
+-- borders stay as they are
+function Panel.UpdateWindowOpacity()
+    local opacity = Storage.GetSetting("windowOpacity")
+    for _, frame in ipairs(windows) do
+        frame:SetBackdropColor(0, 0, 0, opacity)
+    end
 end
 
 function Panel.CreateDivider(parent, y)

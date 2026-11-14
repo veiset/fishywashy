@@ -37,5 +37,13 @@ Config.RECAST_WINDOW = 0.3
 -- Seconds between two right-clicks for them to count as a double-click that casts Fishing
 Config.DOUBLE_CLICK_TIME = 0.4
 
+-- With auto recast Levitate on, casting Fishing casts Levitate again first when it has less
+-- than this many seconds left
+Config.LEVITATE_REFRESH = 25
+
+-- A break between casts counts towards the time spent fishing for up to this many seconds,
+-- so time logged out or away doesn't lower the fish per hour
+Config.FISHING_BREAK = 300
+
 -- Number of rows in the History panel
 Config.RECENT_CATCHES = 5

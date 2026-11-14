@@ -10,6 +10,7 @@ Utils.GetItemInfoInstant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfo
 Utils.GetItemCount = (C_Item and C_Item.GetItemCount) or GetItemCount
 Utils.GetItemIcon = (C_Item and C_Item.GetItemIconByID) or GetItemIcon
 Utils.GetSpellName = (C_Spell and C_Spell.GetSpellName) or GetSpellInfo
+Utils.IsSpellUsable = (C_Spell and C_Spell.IsSpellUsable) or IsUsableSpell
 
 -- Text colours, as used with Utils.Color
 Utils.GREY = "9d9d9d"

@@ -1,5 +1,5 @@
 local _, ns = ...
-local Storage = ns.Storage
+local Config, Storage = ns.Config, ns.Storage
 
 -- Aggregates the catch history into stats.
 local Stats = {}
@@ -190,13 +190,35 @@ function Stats.GetGlobalCastSummary()
     return SummarizeCasts(caught, caught + unsuccessful, seconds)
 end
 
--- Seconds since the session's first cast, or 0 before it
+-- Seconds since the session's first cast, including time logged out or away, or 0 before it
 function Stats.GetSessionLength()
     local start = Storage.GetStatsStart()
     return start and time() - start or 0
 end
 
--- Items caught per hour since the session's first cast
-function Stats.GetPerHour(total)
-    return total / (math.max(Stats.GetSessionLength(), 1) / 3600)
+-- Seconds spent fishing this session: from the first cast to now, with each break between casts
+-- counted as at most Config.FISHING_BREAK, so time logged out or away isn't counted. 0 before the
+-- first cast.
+function Stats.GetFishingTime()
+    local seconds, lastEnded = 0, nil
+    for _, cast in ipairs(Storage.GetCasts()) do
+        if lastEnded then
+            seconds = seconds + math.min(math.max(cast.time - lastEnded, 0), Config.FISHING_BREAK)
+        end
+        -- Casts saved before end times were recorded only have their start time
+        local ended = cast.ended or cast.time
+        seconds = seconds + math.max(ended - cast.time, 0)
+        lastEnded = ended
+    end
+    -- Time since the last cast, including a cast in progress
+    if lastEnded then
+        seconds = seconds + math.min(math.max(time() - lastEnded, 0), Config.FISHING_BREAK)
+    end
+    return seconds
+end
+
+-- Items caught per hour over the given seconds, such as Stats.GetSessionLength() or
+-- Stats.GetFishingTime()
+function Stats.GetPerHour(total, seconds)
+    return total / (math.max(seconds, 1) / 3600)
 end
