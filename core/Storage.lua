@@ -106,6 +106,12 @@ function Storage.Init()
         db.settings.castMode = "none"
     end
     db.settings.rightClickCast = nil
+    db.poleCVarBackups = db.poleCVarBackups or {}
+    -- 1.4.x kept only the Auto Loot setting, on its own
+    if db.autoLootBackup then
+        db.poleCVarBackups.autoLootDefault = db.poleCVarBackups.autoLootDefault or db.autoLootBackup
+        db.autoLootBackup = nil
+    end
     db.catches = db.catches or {}
     db.casts = db.casts or {}
 
@@ -141,14 +147,14 @@ function Storage.SetSoundBackup(backup)
     db.soundBackup = backup
 end
 
--- The player's own Auto Loot setting, kept while it's turned on for fishing so it survives a
--- logout or crash.
-function Storage.GetAutoLootBackup()
-    return db.autoLootBackup
+-- The player's own value of a game setting changed while the fishing pole is equipped, kept so
+-- it survives a logout or crash; nil when it isn't changed.
+function Storage.GetPoleCVarBackup(cvar)
+    return db.poleCVarBackups[cvar]
 end
 
-function Storage.SetAutoLootBackup(backup)
-    db.autoLootBackup = backup
+function Storage.SetPoleCVarBackup(cvar, backup)
+    db.poleCVarBackups[cvar] = backup
 end
 
 -- Every fishing catch this session, oldest first: { itemID, link, icon, quantity, time, zone, subzone }.
@@ -190,7 +196,7 @@ end
 -- Deletes all catches, casts and all-time totals; the settings are kept
 function Storage.ClearAll()
     FishyWashyDB = { version = SCHEMA_VERSION, settings = db.settings, soundBackup = db.soundBackup,
-        autoLootBackup = db.autoLootBackup }
+        poleCVarBackups = db.poleCVarBackups }
     Storage.Init()
 end
 

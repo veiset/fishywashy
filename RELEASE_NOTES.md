@@ -1,3 +1,3 @@
-## 1.4.1
+## 1.4.2
 
-- The Stats list shows at most 7 items, so the window no longer grows down the screen. Scroll through the rest with the mouse wheel or the small scroll bar at its right edge. It's back at the top whenever the window is opened again
+- Fixed sound sometimes not playing while another window is in front. Sound in background is now on the whole time a fishing pole is equipped, not just during each cast, and set back to your own setting when you unequip the pole or log out. The config option is renamed "Sound in background"

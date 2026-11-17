@@ -1,6 +1,6 @@
 local _, ns = ...
-local Utils, Panel, Storage, Sound, Catches, EasyCast, Levitate, AutoLoot = ns.Utils, ns.Panel, ns.Storage,
-    ns.Sound, ns.Catches, ns.EasyCast, ns.Levitate, ns.AutoLoot
+local Utils, Panel, Storage, Sound, Catches, EasyCast, Levitate, PoleCVars = ns.Utils, ns.Panel, ns.Storage,
+    ns.Sound, ns.Catches, ns.EasyCast, ns.Levitate, ns.PoleCVars
 
 -- The settings checkboxes, the volume and opacity sliders and the reset-all button.
 local ConfigPanel = {}
@@ -223,7 +223,7 @@ function ConfigPanel.Create(parent, stats, onLayoutChange)
     reelInHint:SetPoint("LEFT", reelInKey, "RIGHT", 4, 0)
     reelInHint:SetText(Utils.Color("(no need to aim)", Utils.GREY))
     Panel.CreateSettingCheckbox(rest, LEFT, -105, "Auto loot " .. Utils.Color("(when rod equipped)", Utils.GREY),
-        "autoLoot", AutoLoot.Update)
+        "autoLoot", PoleCVars.Update)
 
     -- The rest, set a little apart from casting and reeling in
     Panel.CreateSettingCheckbox(rest, LEFT, -133, "Fishing volume", "enabled", function()
@@ -232,9 +232,8 @@ function ConfigPanel.Create(parent, stats, onLayoutChange)
         end
     end)
     CreatePercentSlider(rest, -133, "volume", Sound.UpdateVolume)
-    -- Takes effect from the next cast
-    Panel.CreateSettingCheckbox(rest, LEFT, -153, "Sound while alt-tabbed " .. Utils.Color("(when fishing)", Utils.GREY),
-        "soundInBackground")
+    Panel.CreateSettingCheckbox(rest, LEFT, -153,
+        "Sound in background " .. Utils.Color("(when rod equipped)", Utils.GREY), "soundInBackground", PoleCVars.Update)
     -- "Window opacity", lined up with the checkbox labels, and its slider
     local opacityLabel = rest:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     opacityLabel:SetPoint("LEFT", rest, "TOPLEFT", Panel.LEFT, -173 - 9)

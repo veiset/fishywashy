@@ -2,7 +2,7 @@
 ## Title: FishyWashy
 ## Notes: Fishing helper: louder splash, bait buttons, easy cast and fishing stats
 ## Author: veiset
-## Version: 1.4.1
+## Version: 1.4.2
 ## IconTexture: 4777763
 ## SavedVariables: FishyWashyDB
 
@@ -15,7 +15,7 @@ core\Levitate.lua
 core\Catches.lua
 core\Sound.lua
 core\EasyCast.lua
-core\AutoLoot.lua
+core\PoleCVars.lua
 core\Stats.lua
 ui\Panel.lua
 ui\ConfigPanel.lua
