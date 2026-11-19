@@ -13,14 +13,20 @@ Config.BAIT_ITEMS = {
     68049, -- Heat-Treated Spinning Lure
     7307,  -- Flesh Eating Worm
     6532,  -- Bright Baubles
+    291005, -- Camper's Lure
     6811,  -- Aquadynamic Fish Lens
     6530,  -- Nightcrawlers
     6529,  -- Shiny Bauble
 }
 
--- Food to eat while fishing, best first; the best one in your bags gets a button
+-- Food to eat while fishing, best first; the best one in your bags that you can eat gets a button
 Config.FOOD_ITEMS = {
-    4593, -- Bristle Whisker Catfish
+    13930, -- Filet of Redgill (+18, level 35)
+    8957,  -- Spinefin Halibut (+18, level 45)
+    4594,  -- Rockscale Cod (+12)
+    4593,  -- Bristle Whisker Catfish (+8)
+    5476,  -- Fillet of Frenzy (+5)
+    6316,  -- Loch Frenzy Delight (+3)
 }
 
 -- Seconds after casting before the volume is boosted, to skip the sound of the cast itself

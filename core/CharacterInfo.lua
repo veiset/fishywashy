@@ -149,10 +149,11 @@ function CharacterInfo.GetFoodBuffTimeLeft()
     end
 end
 
--- The first food from Config.FOOD_ITEMS that is in the bags, or nil
+-- The first food from Config.FOOD_ITEMS that is in the bags and the character can eat (some
+-- need a higher level), or nil
 function CharacterInfo.GetBestFood()
     for _, itemID in ipairs(Config.FOOD_ITEMS) do
-        if GetItemCount(itemID) > 0 then
+        if GetItemCount(itemID) > 0 and ns.Bait.CanUse(itemID) then
             return itemID
         end
     end
